@@ -403,8 +403,9 @@ bool DDSFile::IsCompressed(DXGIFormat fmt) {
         case DXGIFormat::BC7_UNorm:
         case DXGIFormat::BC7_UNorm_SRGB:
             return true;
+        default:
+            return false;
     }
-    return false;
 }
 
 uint32_t DDSFile::MakeFourCC(char ch0, char ch1, char ch2, char ch3) {
@@ -464,6 +465,16 @@ DDSFile::DXGIFormat DDSFile::GetDXGIFormat(const PixelFormat& pf) {
                 if (pf.m_RBitMask == 0x0f00 && pf.m_GBitMask == 0x00f0 &&
                     pf.m_BBitMask == 0x000f && pf.m_ABitMask == 0xf000) {
                     return DXGIFormat::B4G4R4A4_UNorm;
+                }
+                if (pf.m_RBitMask == 0x00ff && pf.m_GBitMask == 0xff00 &&
+                    pf.m_BBitMask == 0x0000 && pf.m_ABitMask == 0x0000) {
+                    return DXGIFormat::R8G8_UNorm;
+                }
+                break;
+            case 8:
+                if (pf.m_RBitMask == 0x00ff && pf.m_GBitMask == 0x0000 &&
+                    pf.m_BBitMask == 0x0000 && pf.m_ABitMask == 0x0000) {
+                    return DXGIFormat::R8_UNorm;
                 }
                 break;
             default:
