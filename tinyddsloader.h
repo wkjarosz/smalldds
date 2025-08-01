@@ -202,13 +202,14 @@ public:
     };
 
     struct Header {
-        uint32_t size;
-        uint32_t flags;
-        uint32_t height;
-        uint32_t width;
-        uint32_t pitchOrLinerSize;
-        uint32_t depth;
-        uint32_t mipMapCount;
+        uint32_t size;              ///< structure size, must be 124
+        uint32_t flags;             ///< flags to indicate valid fields
+        uint32_t height;            ///< image height
+        uint32_t width;             ///< image width
+        uint32_t pitchOrLinerSize;  ///< bytes per scanline (uncmp.)/total byte
+                                    ///< size (cmp.)
+        uint32_t depth;             ///< image depth (for 3D textures)
+        uint32_t mipMapCount;       ///< number of mipmaps
         uint32_t reserved1[11];
         PixelFormat pixelFormat;
         uint32_t caps;
