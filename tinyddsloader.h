@@ -233,7 +233,7 @@ public:
         uint32_t reserved2;
     };
 
-    enum class TextureDimension : uint32_t {
+    enum TextureDimension : uint32_t {
         Dimension_Unknown = 0,
         Texture1D = 2,
         Texture2D = 3,
