@@ -36,17 +36,17 @@ public:
     static constexpr uint32_t MakeFourCC(char ch0, char ch1, char ch2,
                                          char ch3);
 
-    static constexpr uint32_t 4CC_DXT1 = MakeFourCC('D', 'X', 'T', '1');
-    static constexpr uint32_t 4CC_DXT2 = MakeFourCC('D', 'X', 'T', '2');
-    static constexpr uint32_t 4CC_DXT3 = MakeFourCC('D', 'X', 'T', '3');
-    static constexpr uint32_t 4CC_DXT4 = MakeFourCC('D', 'X', 'T', '4');
-    static constexpr uint32_t 4CC_DXT5 = MakeFourCC('D', 'X', 'T', '5');
-    static constexpr uint32_t 4CC_RXGB = MakeFourCC('R', 'X', 'G', 'B');
-    static constexpr uint32_t 4CC_ATI1 = MakeFourCC('A', 'T', 'I', '1');
-    static constexpr uint32_t 4CC_ATI2 = MakeFourCC('A', 'T', 'I', '2');
-    static constexpr uint32_t 4CC_BC4U = MakeFourCC('B', 'C', '4', 'U');
-    static constexpr uint32_t 4CC_BC5U = MakeFourCC('B', 'C', '5', 'U');
-    static constexpr uint32_t 4CC_DX10 = MakeFourCC('D', 'X', '1', '0');
+    static constexpr uint32_t DXT1 = MakeFourCC('D', 'X', 'T', '1');
+    static constexpr uint32_t DXT2 = MakeFourCC('D', 'X', 'T', '2');
+    static constexpr uint32_t DXT3 = MakeFourCC('D', 'X', 'T', '3');
+    static constexpr uint32_t DXT4 = MakeFourCC('D', 'X', 'T', '4');
+    static constexpr uint32_t DXT5 = MakeFourCC('D', 'X', 'T', '5');
+    static constexpr uint32_t RXGB = MakeFourCC('R', 'X', 'G', 'B');
+    static constexpr uint32_t ATI1 = MakeFourCC('A', 'T', 'I', '1');
+    static constexpr uint32_t ATI2 = MakeFourCC('A', 'T', 'I', '2');
+    static constexpr uint32_t BC4U = MakeFourCC('B', 'C', '4', 'U');
+    static constexpr uint32_t BC5U = MakeFourCC('B', 'C', '5', 'U');
+    static constexpr uint32_t DX10 = MakeFourCC('D', 'X', '1', '0');
 
     enum PixelFormatFlagBits : uint32_t {
         AlphaPixels = 0x00000001,  ///< image has alpha channel
