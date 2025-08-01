@@ -30,7 +30,10 @@ enum Result {
     ErrorInvalidData,
 };
 
-#define MakeFourCC(a, b, c, d) (a | b << 8 | c << 16 | d << 24)
+constexpr uint32_t MakeFourCC(char ch0, char ch1, char ch2, char ch3) {
+    return (uint32_t(uint8_t(ch0)) | (uint32_t(uint8_t(ch1)) << 8) |
+            (uint32_t(uint8_t(ch2)) << 16) | (uint32_t(uint8_t(ch3)) << 24));
+}
 
 class DDSFile {
 public:
