@@ -2,6 +2,14 @@
 // Copyright(c) 2019 benikabocha.
 // Distributed under the MIT License (http://opensource.org/licenses/MIT)
 //
+// Modified by Wojciech Jarosz, 2025
+//
+// - Store and provide access to the entire raw header
+// - Removed m_ prefix on some struct members that are now publicly accessible
+// - Load(...) now only reads the header and copies the entire file data; it
+//   does not populate the image data structures
+// - Added PopulateImageDatas() which must be called after Load() if more than
+//   the header is needed
 
 #ifndef TINYDDSLOADER_H_
 #define TINYDDSLOADER_H_
@@ -27,16 +35,14 @@ public:
     static const char Magic[4];
 
     enum class PixelFormatFlagBits : uint32_t {
-        FourCC = 0x00000004,
-        RGB = 0x00000040,
-        RGBA = 0x00000041,
-        Luminance = 0x00020000,
-        LuminanceA = 0x00020001,
-        AlphaPixels = 0x00000001,
-        Alpha = 0x00000002,
+        AlphaPixels = 0x00000001,  ///< image has alpha channel
+        AlphaOnly = 0x00000002,    ///< image has only the alpha channel
+        FourCC = 0x00000004,       ///< image is compressed
+        RGB = 0x00000040,          ///< image has RGB data
+        Luminance = 0x00020000,    ///< image has luminance data
         Palette8 = 0x00000020,
-        Palette8A = 0x00000021,
-        BumpDUDV = 0x00080000
+        BumpDUDV = 0x00080000,
+        Normal = 0x80000000u,  ///< image is a tangent space normal map
     };
 
     enum class DXGIFormat : uint32_t {
@@ -185,31 +191,31 @@ public:
     };
 
     struct PixelFormat {
-        uint32_t m_size;
-        uint32_t m_flags;
-        uint32_t m_fourCC;
-        uint32_t m_bitCount;
-        uint32_t m_RBitMask;
-        uint32_t m_GBitMask;
-        uint32_t m_BBitMask;
-        uint32_t m_ABitMask;
+        uint32_t size;
+        uint32_t flags;
+        uint32_t fourCC;
+        uint32_t bitCount;
+        uint32_t RBitMask;
+        uint32_t GBitMask;
+        uint32_t BBitMask;
+        uint32_t ABitMask;
     };
 
     struct Header {
-        uint32_t m_size;
-        uint32_t m_flags;
-        uint32_t m_height;
-        uint32_t m_width;
-        uint32_t m_pitchOrLinerSize;
-        uint32_t m_depth;
-        uint32_t m_mipMapCount;
-        uint32_t m_reserved1[11];
-        PixelFormat m_pixelFormat;
-        uint32_t m_caps;
-        uint32_t m_caps2;
-        uint32_t m_caps3;
-        uint32_t m_caps4;
-        uint32_t m_reserved2;
+        uint32_t size;
+        uint32_t flags;
+        uint32_t height;
+        uint32_t width;
+        uint32_t pitchOrLinerSize;
+        uint32_t depth;
+        uint32_t mipMapCount;
+        uint32_t reserved1[11];
+        PixelFormat pixelFormat;
+        uint32_t caps;
+        uint32_t caps2;
+        uint32_t caps3;
+        uint32_t caps4;
+        uint32_t reserved2;
     };
 
     enum class TextureDimension : uint32_t {
@@ -222,11 +228,11 @@ public:
     enum class DXT10MiscFlagBits : uint32_t { TextureCube = 0x4 };
 
     struct HeaderDXT10 {
-        DXGIFormat m_format;
-        TextureDimension m_resourceDimension;
-        uint32_t m_miscFlag;
-        uint32_t m_arraySize;
-        uint32_t m_miscFlag2;
+        DXGIFormat format = DXGIFormat::Unknown;
+        TextureDimension resourceDimension = TextureDimension::Unknown;
+        uint32_t miscFlag = 0;
+        uint32_t arraySize = 1;
+        uint32_t miscFlag2 = 0;
     };
 
     struct ImageData {
@@ -317,27 +323,36 @@ public:
     Result Load(std::istream& input);
     Result Load(const uint8_t* data, size_t size);
     Result Load(std::vector<uint8_t>&& dds);
+    Result PopulateImageDatas();
 
     const ImageData* GetImageData(uint32_t mipIdx = 0,
                                   uint32_t arrayIdx = 0) const {
-        if (mipIdx < m_mipCount && arrayIdx < m_arraySize) {
-            return &m_imageDatas[m_mipCount * arrayIdx + mipIdx];
+        if (mipIdx < m_header.mipMapCount &&
+            arrayIdx < m_headerDXT10.arraySize) {
+            return &m_imageDatas[m_header.mipMapCount * arrayIdx + mipIdx];
         }
         return nullptr;
     }
 
     bool Flip();
 
-    uint32_t GetWidth() const { return m_width; }
-    uint32_t GetHeight() const { return m_height; }
-    uint32_t GetDepth() const { return m_depth; }
-    uint32_t GetMipCount() const { return m_mipCount; }
-    uint32_t GetArraySize() const { return m_arraySize; }
-    DXGIFormat GetFormat() const { return m_format; }
+    const Header& GetHeader() const { return m_header; }
+    const HeaderDXT10& GetHeaderDXT10() const { return m_headerDXT10; }
+
+    // Convenient access to some header fields
+    uint32_t GetWidth() const { return m_header.width; }
+    uint32_t GetHeight() const { return m_header.height; }
+    uint32_t GetDepth() const { return m_header.depth; }
+    uint32_t GetMipCount() const { return m_header.mipMapCount; }
+    uint32_t GetArraySize() const { return m_headerDXT10.arraySize; }
+    DXGIFormat GetFormat() const { return m_headerDXT10.format; }
     bool IsCubemap() const { return m_isCubemap; }
-    TextureDimension GetTextureDimension() const { return m_texDim; }
+    TextureDimension GetTextureDimension() const {
+        return m_headerDXT10.resourceDimension;
+    }
 
 private:
+    Result VerifyHeader();
     void GetImageInfo(uint32_t w, uint32_t h, DXGIFormat fmt,
                       uint32_t* outNumBytes, uint32_t* outRowBytes,
                       uint32_t* outNumRows);
@@ -353,14 +368,11 @@ private:
     std::vector<uint8_t> m_dds;
     std::vector<ImageData> m_imageDatas;
 
-    uint32_t m_height;
-    uint32_t m_width;
-    uint32_t m_depth;
-    uint32_t m_mipCount;
-    uint32_t m_arraySize;
-    DXGIFormat m_format;
+    Header m_header;
+    bool m_hasDXT10Header = false;
+    HeaderDXT10 m_headerDXT10;
+    bool m_headerVerified = false;
     bool m_isCubemap;
-    TextureDimension m_texDim;
 };
 
 }  // namespace tinyddsloader
@@ -414,164 +426,154 @@ uint32_t DDSFile::MakeFourCC(char ch0, char ch1, char ch2, char ch3) {
 }
 
 DDSFile::DXGIFormat DDSFile::GetDXGIFormat(const PixelFormat& pf) {
-    if (pf.m_flags & uint32_t(PixelFormatFlagBits::RGB)) {
-        switch (pf.m_bitCount) {
+    if (pf.flags & uint32_t(PixelFormatFlagBits::RGB)) {
+        switch (pf.bitCount) {
             case 32:
-                if (pf.m_RBitMask == 0x000000ff &&
-                    pf.m_GBitMask == 0x0000ff00 &&
-                    pf.m_BBitMask == 0x00ff0000 &&
-                    pf.m_ABitMask == 0xff000000) {
+                if (pf.RBitMask == 0x000000ff && pf.GBitMask == 0x0000ff00 &&
+                    pf.BBitMask == 0x00ff0000 && pf.ABitMask == 0xff000000) {
                     return DXGIFormat::R8G8B8A8_UNorm;
                 }
-                if (pf.m_RBitMask == 0x00ff0000 &&
-                    pf.m_GBitMask == 0x0000ff00 &&
-                    pf.m_BBitMask == 0x000000ff &&
-                    pf.m_ABitMask == 0xff000000) {
+                if (pf.RBitMask == 0x00ff0000 && pf.GBitMask == 0x0000ff00 &&
+                    pf.BBitMask == 0x000000ff && pf.ABitMask == 0xff000000) {
                     return DXGIFormat::B8G8R8A8_UNorm;
                 }
-                if (pf.m_RBitMask == 0x00ff0000 &&
-                    pf.m_GBitMask == 0x0000ff00 &&
-                    pf.m_BBitMask == 0x000000ff &&
-                    pf.m_ABitMask == 0x00000000) {
+                if (pf.RBitMask == 0x00ff0000 && pf.GBitMask == 0x0000ff00 &&
+                    pf.BBitMask == 0x000000ff && pf.ABitMask == 0x00000000) {
                     return DXGIFormat::B8G8R8X8_UNorm;
                 }
 
-                if (pf.m_RBitMask == 0x0000ffff &&
-                    pf.m_GBitMask == 0xffff0000 &&
-                    pf.m_BBitMask == 0x00000000 &&
-                    pf.m_ABitMask == 0x00000000) {
+                if (pf.RBitMask == 0x0000ffff && pf.GBitMask == 0xffff0000 &&
+                    pf.BBitMask == 0x00000000 && pf.ABitMask == 0x00000000) {
                     return DXGIFormat::R16G16_UNorm;
                 }
 
-                if (pf.m_RBitMask == 0xffffffff &&
-                    pf.m_GBitMask == 0x00000000 &&
-                    pf.m_BBitMask == 0x00000000 &&
-                    pf.m_ABitMask == 0x00000000) {
+                if (pf.RBitMask == 0xffffffff && pf.GBitMask == 0x00000000 &&
+                    pf.BBitMask == 0x00000000 && pf.ABitMask == 0x00000000) {
                     return DXGIFormat::R32_Float;
                 }
                 break;
             case 24:
                 break;
             case 16:
-                if (pf.m_RBitMask == 0x7c00 && pf.m_GBitMask == 0x03e0 &&
-                    pf.m_BBitMask == 0x001f && pf.m_ABitMask == 0x8000) {
+                if (pf.RBitMask == 0x7c00 && pf.GBitMask == 0x03e0 &&
+                    pf.BBitMask == 0x001f && pf.ABitMask == 0x8000) {
                     return DXGIFormat::B5G5R5A1_UNorm;
                 }
-                if (pf.m_RBitMask == 0xf800 && pf.m_GBitMask == 0x07e0 &&
-                    pf.m_BBitMask == 0x001f && pf.m_ABitMask == 0x0000) {
+                if (pf.RBitMask == 0xf800 && pf.GBitMask == 0x07e0 &&
+                    pf.BBitMask == 0x001f && pf.ABitMask == 0x0000) {
                     return DXGIFormat::B5G6R5_UNorm;
                 }
 
-                if (pf.m_RBitMask == 0x0f00 && pf.m_GBitMask == 0x00f0 &&
-                    pf.m_BBitMask == 0x000f && pf.m_ABitMask == 0xf000) {
+                if (pf.RBitMask == 0x0f00 && pf.GBitMask == 0x00f0 &&
+                    pf.BBitMask == 0x000f && pf.ABitMask == 0xf000) {
                     return DXGIFormat::B4G4R4A4_UNorm;
                 }
-                if (pf.m_RBitMask == 0x00ff && pf.m_GBitMask == 0xff00 &&
-                    pf.m_BBitMask == 0x0000 && pf.m_ABitMask == 0x0000) {
+                if (pf.RBitMask == 0x00ff && pf.GBitMask == 0xff00 &&
+                    pf.BBitMask == 0x0000 && pf.ABitMask == 0x0000) {
                     return DXGIFormat::R8G8_UNorm;
                 }
                 break;
             case 8:
-                if (pf.m_RBitMask == 0x00ff && pf.m_GBitMask == 0x0000 &&
-                    pf.m_BBitMask == 0x0000 && pf.m_ABitMask == 0x0000) {
+                if (pf.RBitMask == 0x00ff && pf.GBitMask == 0x0000 &&
+                    pf.BBitMask == 0x0000 && pf.ABitMask == 0x0000) {
                     return DXGIFormat::R8_UNorm;
                 }
                 break;
             default:
                 break;
         }
-    } else if (pf.m_flags & uint32_t(PixelFormatFlagBits::Luminance)) {
-        if (8 == pf.m_bitCount) {
-            if (pf.m_RBitMask == 0x000000ff && pf.m_GBitMask == 0x00000000 &&
-                pf.m_BBitMask == 0x00000000 && pf.m_ABitMask == 0x00000000) {
+    } else if (pf.flags & uint32_t(PixelFormatFlagBits::Luminance)) {
+        if (8 == pf.bitCount) {
+            if (pf.RBitMask == 0x000000ff && pf.GBitMask == 0x00000000 &&
+                pf.BBitMask == 0x00000000 && pf.ABitMask == 0x00000000) {
                 return DXGIFormat::R8_UNorm;
             }
-            if (pf.m_RBitMask == 0x000000ff && pf.m_GBitMask == 0x0000ff00 &&
-                pf.m_BBitMask == 0x00000000 && pf.m_ABitMask == 0x00000000) {
+            if (pf.RBitMask == 0x000000ff && pf.GBitMask == 0x0000ff00 &&
+                pf.BBitMask == 0x00000000 && pf.ABitMask == 0x00000000) {
                 return DXGIFormat::R8G8_UNorm;
             }
         }
-        if (16 == pf.m_bitCount) {
-            if (pf.m_RBitMask == 0x0000ffff && pf.m_GBitMask == 0x00000000 &&
-                pf.m_BBitMask == 0x00000000 && pf.m_ABitMask == 0x00000000) {
+        if (16 == pf.bitCount) {
+            if (pf.RBitMask == 0x0000ffff && pf.GBitMask == 0x00000000 &&
+                pf.BBitMask == 0x00000000 && pf.ABitMask == 0x00000000) {
                 return DXGIFormat::R16_UNorm;
             }
-            if (pf.m_RBitMask == 0x000000ff && pf.m_GBitMask == 0x0000ff00 &&
-                pf.m_BBitMask == 0x00000000 && pf.m_ABitMask == 0x00000000) {
+            if (pf.RBitMask == 0x000000ff && pf.GBitMask == 0x0000ff00 &&
+                pf.BBitMask == 0x00000000 && pf.ABitMask == 0x00000000) {
                 return DXGIFormat::R8G8_UNorm;
             }
         }
-    } else if (pf.m_flags & uint32_t(PixelFormatFlagBits::Alpha)) {
-        if (8 == pf.m_bitCount) {
+    } else if (pf.flags & uint32_t(PixelFormatFlagBits::AlphaOnly)) {
+        if (8 == pf.bitCount) {
             return DXGIFormat::A8_UNorm;
         }
-    } else if (pf.m_flags & uint32_t(PixelFormatFlagBits::BumpDUDV)) {
-        if (16 == pf.m_bitCount) {
-            if (pf.m_RBitMask == 0x00ff && pf.m_GBitMask == 0xff00 &&
-                pf.m_BBitMask == 0x0000 && pf.m_ABitMask == 0x0000) {
+    } else if (pf.flags & uint32_t(PixelFormatFlagBits::BumpDUDV)) {
+        if (16 == pf.bitCount) {
+            if (pf.RBitMask == 0x00ff && pf.GBitMask == 0xff00 &&
+                pf.BBitMask == 0x0000 && pf.ABitMask == 0x0000) {
                 return DXGIFormat::R8G8_SNorm;
             }
         }
-        if (32 == pf.m_bitCount) {
-            if (pf.m_RBitMask == 0x000000ff && pf.m_GBitMask == 0x0000ff00 &&
-                pf.m_BBitMask == 0x00ff0000 && pf.m_ABitMask == 0xff000000) {
+        if (32 == pf.bitCount) {
+            if (pf.RBitMask == 0x000000ff && pf.GBitMask == 0x0000ff00 &&
+                pf.BBitMask == 0x00ff0000 && pf.ABitMask == 0xff000000) {
                 return DXGIFormat::R8G8B8A8_SNorm;
             }
-            if (pf.m_RBitMask == 0x0000ffff && pf.m_GBitMask == 0xffff0000 &&
-                pf.m_BBitMask == 0x00000000 && pf.m_ABitMask == 0x00000000) {
+            if (pf.RBitMask == 0x0000ffff && pf.GBitMask == 0xffff0000 &&
+                pf.BBitMask == 0x00000000 && pf.ABitMask == 0x00000000) {
                 return DXGIFormat::R16G16_SNorm;
             }
         }
-    } else if (pf.m_flags & uint32_t(PixelFormatFlagBits::FourCC)) {
-        if (MakeFourCC('D', 'X', 'T', '1') == pf.m_fourCC) {
+    } else if (pf.flags & uint32_t(PixelFormatFlagBits::FourCC)) {
+        if (MakeFourCC('D', 'X', 'T', '1') == pf.fourCC) {
             return DXGIFormat::BC1_UNorm;
         }
-        if (MakeFourCC('D', 'X', 'T', '3') == pf.m_fourCC) {
+        if (MakeFourCC('D', 'X', 'T', '3') == pf.fourCC) {
             return DXGIFormat::BC2_UNorm;
         }
-        if (MakeFourCC('D', 'X', 'T', '5') == pf.m_fourCC) {
+        if (MakeFourCC('D', 'X', 'T', '5') == pf.fourCC) {
             return DXGIFormat::BC3_UNorm;
         }
 
-        if (MakeFourCC('D', 'X', 'T', '4') == pf.m_fourCC) {
+        if (MakeFourCC('D', 'X', 'T', '4') == pf.fourCC) {
             return DXGIFormat::BC2_UNorm;
         }
-        if (MakeFourCC('D', 'X', 'T', '5') == pf.m_fourCC) {
+        if (MakeFourCC('D', 'X', 'T', '5') == pf.fourCC) {
             return DXGIFormat::BC3_UNorm;
         }
 
-        if (MakeFourCC('A', 'T', 'I', '1') == pf.m_fourCC) {
+        if (MakeFourCC('A', 'T', 'I', '1') == pf.fourCC) {
             return DXGIFormat::BC4_UNorm;
         }
-        if (MakeFourCC('B', 'C', '4', 'U') == pf.m_fourCC) {
+        if (MakeFourCC('B', 'C', '4', 'U') == pf.fourCC) {
             return DXGIFormat::BC4_UNorm;
         }
-        if (MakeFourCC('B', 'C', '4', 'S') == pf.m_fourCC) {
+        if (MakeFourCC('B', 'C', '4', 'S') == pf.fourCC) {
             return DXGIFormat::BC4_SNorm;
         }
 
-        if (MakeFourCC('A', 'T', 'I', '2') == pf.m_fourCC) {
+        if (MakeFourCC('A', 'T', 'I', '2') == pf.fourCC) {
             return DXGIFormat::BC5_UNorm;
         }
-        if (MakeFourCC('B', 'C', '5', 'U') == pf.m_fourCC) {
+        if (MakeFourCC('B', 'C', '5', 'U') == pf.fourCC) {
             return DXGIFormat::BC5_UNorm;
         }
-        if (MakeFourCC('B', 'C', '5', 'S') == pf.m_fourCC) {
+        if (MakeFourCC('B', 'C', '5', 'S') == pf.fourCC) {
             return DXGIFormat::BC5_SNorm;
         }
 
-        if (MakeFourCC('R', 'G', 'B', 'G') == pf.m_fourCC) {
+        if (MakeFourCC('R', 'G', 'B', 'G') == pf.fourCC) {
             return DXGIFormat::R8G8_B8G8_UNorm;
         }
-        if (MakeFourCC('G', 'R', 'G', 'B') == pf.m_fourCC) {
+        if (MakeFourCC('G', 'R', 'G', 'B') == pf.fourCC) {
             return DXGIFormat::G8R8_G8B8_UNorm;
         }
 
-        if (MakeFourCC('Y', 'U', 'Y', '2') == pf.m_fourCC) {
+        if (MakeFourCC('Y', 'U', 'Y', '2') == pf.fourCC) {
             return DXGIFormat::YUY2;
         }
 
-        switch (pf.m_fourCC) {
+        switch (pf.fourCC) {
             case 36:
                 return DXGIFormat::R16G16B16A16_UNorm;
             case 110:
@@ -791,81 +793,83 @@ Result DDSFile::Load(std::vector<uint8_t>&& dds) {
     if ((sizeof(uint32_t) + sizeof(Header)) >= dds.size()) {
         return Result::ErrorSize;
     }
-    auto header =
-        reinterpret_cast<const Header*>(dds.data() + sizeof(uint32_t));
 
-    if (header->m_size != sizeof(Header) ||
-        header->m_pixelFormat.m_size != sizeof(PixelFormat)) {
+    std::memcpy(&m_header, dds.data() + sizeof(uint32_t), sizeof(Header));
+
+    m_dds = std::move(dds);
+
+    auto status = VerifyHeader();
+    if (status != Result::Success) return status;
+
+    return Result::Success;
+}
+
+Result DDSFile::VerifyHeader() {
+    if (m_headerVerified) return Result::Success;
+
+    if (m_header.size != sizeof(Header) ||
+        m_header.pixelFormat.size != sizeof(PixelFormat)) {
         return Result::ErrorVerify;
     }
-    bool dxt10Header = false;
-    if ((header->m_pixelFormat.m_flags &
-         uint32_t(PixelFormatFlagBits::FourCC)) &&
-        (MakeFourCC('D', 'X', '1', '0') == header->m_pixelFormat.m_fourCC)) {
+
+    m_hasDXT10Header = false;
+    if ((m_header.pixelFormat.flags & uint32_t(PixelFormatFlagBits::FourCC)) &&
+        (MakeFourCC('D', 'X', '1', '0') == m_header.pixelFormat.fourCC)) {
         if ((sizeof(uint32_t) + sizeof(Header) + sizeof(HeaderDXT10)) >=
-            dds.size()) {
+            m_dds.size()) {
             return Result::ErrorSize;
         }
-        dxt10Header = true;
+        m_hasDXT10Header = true;
     }
-    ptrdiff_t offset = sizeof(uint32_t) + sizeof(Header) +
-                       (dxt10Header ? sizeof(HeaderDXT10) : 0);
 
-    m_height = header->m_height;
-    m_width = header->m_width;
-    m_texDim = TextureDimension::Unknown;
-    m_arraySize = 1;
-    m_format = DXGIFormat::Unknown;
     m_isCubemap = false;
-    m_mipCount = header->m_mipMapCount;
-    if (0 == m_mipCount) {
-        m_mipCount = 1;
+    if (m_header.mipMapCount == 0) {
+        m_header.mipMapCount = 1;
     }
 
-    if (dxt10Header) {
-        auto dxt10Header = reinterpret_cast<const HeaderDXT10*>(
-            reinterpret_cast<const char*>(header) + sizeof(Header));
+    if (m_hasDXT10Header) {
+        // Copy the DXT10 header from m_dds
+        std::memcpy(&m_headerDXT10,
+                    m_dds.data() + sizeof(uint32_t) + sizeof(Header),
+                    sizeof(HeaderDXT10));
 
-        m_arraySize = dxt10Header->m_arraySize;
-        if (m_arraySize == 0) {
+        if (m_headerDXT10.arraySize == 0) {
             return Result::ErrorInvalidData;
         }
 
-        switch (dxt10Header->m_format) {
+        switch (m_headerDXT10.format) {
             case DXGIFormat::AI44:
             case DXGIFormat::IA44:
             case DXGIFormat::P8:
             case DXGIFormat::A8P8:
                 return Result::ErrorNotSupported;
             default:
-                if (GetBitsPerPixel(dxt10Header->m_format) == 0) {
+                if (GetBitsPerPixel(m_headerDXT10.format) == 0) {
                     return Result::ErrorNotSupported;
                 }
         }
 
-        m_format = dxt10Header->m_format;
-
-        switch (dxt10Header->m_resourceDimension) {
+        switch (m_headerDXT10.resourceDimension) {
             case TextureDimension::Texture1D:
-                if ((header->m_flags & uint32_t(HeaderFlagBits::Height) &&
-                     (m_height != 1))) {
+                if ((m_header.flags & uint32_t(HeaderFlagBits::Height) &&
+                     (m_header.height != 1))) {
                     return Result::ErrorInvalidData;
                 }
-                m_height = m_depth = 1;
+                m_header.height = m_header.depth = 1;
                 break;
             case TextureDimension::Texture2D:
-                if (dxt10Header->m_miscFlag &
+                if (m_headerDXT10.miscFlag &
                     uint32_t(DXT10MiscFlagBits::TextureCube)) {
-                    m_arraySize *= 6;
+                    m_headerDXT10.arraySize *= 6;
                     m_isCubemap = true;
                 }
-                m_depth = 1;
+                m_header.depth = 1;
                 break;
             case TextureDimension::Texture3D:
-                if (!(header->m_flags & uint32_t(HeaderFlagBits::Volume))) {
+                if (!(m_header.flags & uint32_t(HeaderFlagBits::Volume))) {
                     return Result::ErrorInvalidData;
                 }
-                if (m_arraySize > 1) {
+                if (m_headerDXT10.arraySize > 1) {
                     return Result::ErrorNotSupported;
                 }
                 break;
@@ -873,43 +877,55 @@ Result DDSFile::Load(std::vector<uint8_t>&& dds) {
                 return Result::ErrorNotSupported;
         }
 
-        m_texDim = dxt10Header->m_resourceDimension;
     } else {
-        m_format = GetDXGIFormat(header->m_pixelFormat);
-        if (m_format == DXGIFormat::Unknown) {
+        m_headerDXT10.format = GetDXGIFormat(m_header.pixelFormat);
+        if (m_headerDXT10.format == DXGIFormat::Unknown) {
             return Result::ErrorNotSupported;
         }
 
-        if (header->m_flags & uint32_t(HeaderFlagBits::Volume)) {
-            m_texDim = TextureDimension::Texture3D;
+        if (m_header.flags & uint32_t(HeaderFlagBits::Volume)) {
+            m_headerDXT10.resourceDimension = TextureDimension::Texture3D;
         } else {
-            auto caps2 = header->m_caps2 &
-                         uint32_t(HeaderCaps2FlagBits::CubemapAllFaces);
+            auto caps2 =
+                m_header.caps2 & uint32_t(HeaderCaps2FlagBits::CubemapAllFaces);
             if (caps2) {
                 if (caps2 != uint32_t(HeaderCaps2FlagBits::CubemapAllFaces)) {
                     return Result::ErrorNotSupported;
                 }
-                m_arraySize = 6;
+                m_headerDXT10.arraySize = 6;
                 m_isCubemap = true;
             }
 
-            m_depth = 1;
-            m_texDim = TextureDimension::Texture2D;
+            m_header.depth = 1;
+            m_headerDXT10.resourceDimension = TextureDimension::Texture2D;
         }
     }
 
-    std::vector<ImageData> imageDatas(m_mipCount * m_arraySize);
-    uint8_t* srcBits = dds.data() + offset;
-    uint8_t* endBits = dds.data() + dds.size();
+    m_headerVerified = true;
+    return Result::Success;
+}
+
+Result DDSFile::PopulateImageDatas() {
+    auto status = VerifyHeader();
+    if (status != Result::Success) return status;
+
+    ptrdiff_t offset = sizeof(uint32_t) + sizeof(Header) +
+                       (m_hasDXT10Header ? sizeof(HeaderDXT10) : 0);
+
+    std::vector<ImageData> imageDatas(m_header.mipMapCount *
+                                      m_headerDXT10.arraySize);
+    uint8_t* srcBits = m_dds.data() + offset;
+    uint8_t* endBits = m_dds.data() + m_dds.size();
     uint32_t idx = 0;
-    for (uint32_t j = 0; j < m_arraySize; j++) {
-        uint32_t w = m_width;
-        uint32_t h = m_height;
-        uint32_t d = m_depth;
-        for (uint32_t i = 0; i < m_mipCount; i++) {
+    for (uint32_t j = 0; j < m_headerDXT10.arraySize; j++) {
+        uint32_t w = m_header.width;
+        uint32_t h = m_header.height;
+        uint32_t d = m_header.depth;
+        for (uint32_t i = 0; i < m_header.mipMapCount; i++) {
             uint32_t numBytes;
             uint32_t rowBytes;
-            GetImageInfo(w, h, m_format, &numBytes, &rowBytes, nullptr);
+            GetImageInfo(w, h, m_headerDXT10.format, &numBytes, &rowBytes,
+                         nullptr);
 
             imageDatas[idx].m_width = w;
             imageDatas[idx].m_height = h;
@@ -929,7 +945,6 @@ Result DDSFile::Load(std::vector<uint8_t>&& dds) {
         }
     }
 
-    m_dds = std::move(dds);
     m_imageDatas = std::move(imageDatas);
 
     return Result::Success;
@@ -1047,7 +1062,7 @@ void DDSFile::GetImageInfo(uint32_t w, uint32_t h, DXGIFormat fmt,
 }
 
 bool DDSFile::Flip() {
-    if (IsCompressed(m_format)) {
+    if (IsCompressed(m_headerDXT10.format)) {
         for (auto& imageData : m_imageDatas) {
             if (!FlipCompressedImage(imageData)) {
                 return false;
@@ -1078,29 +1093,29 @@ bool DDSFile::FlipImage(ImageData& imageData) {
 }
 
 bool DDSFile::FlipCompressedImage(ImageData& imageData) {
-    if (DXGIFormat::BC1_Typeless == m_format ||
-        DXGIFormat::BC1_UNorm == m_format ||
-        DXGIFormat::BC1_UNorm_SRGB == m_format) {
+    if (DXGIFormat::BC1_Typeless == m_headerDXT10.format ||
+        DXGIFormat::BC1_UNorm == m_headerDXT10.format ||
+        DXGIFormat::BC1_UNorm_SRGB == m_headerDXT10.format) {
         FlipCompressedImageBC1(imageData);
         return true;
-    } else if (DXGIFormat::BC2_Typeless == m_format ||
-               DXGIFormat::BC2_UNorm == m_format ||
-               DXGIFormat::BC2_UNorm_SRGB == m_format) {
+    } else if (DXGIFormat::BC2_Typeless == m_headerDXT10.format ||
+               DXGIFormat::BC2_UNorm == m_headerDXT10.format ||
+               DXGIFormat::BC2_UNorm_SRGB == m_headerDXT10.format) {
         FlipCompressedImageBC2(imageData);
         return true;
-    } else if (DXGIFormat::BC3_Typeless == m_format ||
-               DXGIFormat::BC3_UNorm == m_format ||
-               DXGIFormat::BC3_UNorm_SRGB == m_format) {
+    } else if (DXGIFormat::BC3_Typeless == m_headerDXT10.format ||
+               DXGIFormat::BC3_UNorm == m_headerDXT10.format ||
+               DXGIFormat::BC3_UNorm_SRGB == m_headerDXT10.format) {
         FlipCompressedImageBC3(imageData);
         return true;
-    } else if (DXGIFormat::BC4_Typeless == m_format ||
-               DXGIFormat::BC4_UNorm == m_format ||
-               DXGIFormat::BC4_SNorm == m_format) {
+    } else if (DXGIFormat::BC4_Typeless == m_headerDXT10.format ||
+               DXGIFormat::BC4_UNorm == m_headerDXT10.format ||
+               DXGIFormat::BC4_SNorm == m_headerDXT10.format) {
         FlipCompressedImageBC4(imageData);
         return true;
-    } else if (DXGIFormat::BC5_Typeless == m_format ||
-               DXGIFormat::BC5_UNorm == m_format ||
-               DXGIFormat::BC5_SNorm == m_format) {
+    } else if (DXGIFormat::BC5_Typeless == m_headerDXT10.format ||
+               DXGIFormat::BC5_UNorm == m_headerDXT10.format ||
+               DXGIFormat::BC5_SNorm == m_headerDXT10.format) {
         FlipCompressedImageBC5(imageData);
         return true;
     }
