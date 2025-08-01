@@ -30,11 +30,11 @@ enum Result {
     ErrorInvalidData,
 };
 
+#define MakeFourCC(a, b, c, d) (a | b << 8 | c << 16 | d << 24)
+
 class DDSFile {
 public:
     static const char Magic[4];
-    static constexpr uint32_t MakeFourCC(char ch0, char ch1, char ch2,
-                                         char ch3);
 
     static constexpr uint32_t DXT1 = MakeFourCC('D', 'X', 'T', '1');
     static constexpr uint32_t DXT2 = MakeFourCC('D', 'X', 'T', '2');
@@ -432,11 +432,6 @@ bool DDSFile::IsCompressed(DXGIFormat fmt) {
         default:
             return false;
     }
-}
-
-constexpr uint32_t DDSFile::MakeFourCC(char ch0, char ch1, char ch2, char ch3) {
-    return (uint32_t(uint8_t(ch0)) | (uint32_t(uint8_t(ch1)) << 8) |
-            (uint32_t(uint8_t(ch2)) << 16) | (uint32_t(uint8_t(ch3)) << 24));
 }
 
 DDSFile::DXGIFormat DDSFile::GetDXGIFormat(const PixelFormat& pf) {
