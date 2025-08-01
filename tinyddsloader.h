@@ -33,8 +33,22 @@ enum Result {
 class DDSFile {
 public:
     static const char Magic[4];
+    static constexpr uint32_t MakeFourCC(char ch0, char ch1, char ch2,
+                                         char ch3);
 
-    enum class PixelFormatFlagBits : uint32_t {
+    static constexpr uint32_t 4CC_DXT1 = MakeFourCC('D', 'X', 'T', '1');
+    static constexpr uint32_t 4CC_DXT2 = MakeFourCC('D', 'X', 'T', '2');
+    static constexpr uint32_t 4CC_DXT3 = MakeFourCC('D', 'X', 'T', '3');
+    static constexpr uint32_t 4CC_DXT4 = MakeFourCC('D', 'X', 'T', '4');
+    static constexpr uint32_t 4CC_DXT5 = MakeFourCC('D', 'X', 'T', '5');
+    static constexpr uint32_t 4CC_RXGB = MakeFourCC('R', 'X', 'G', 'B');
+    static constexpr uint32_t 4CC_ATI1 = MakeFourCC('A', 'T', 'I', '1');
+    static constexpr uint32_t 4CC_ATI2 = MakeFourCC('A', 'T', 'I', '2');
+    static constexpr uint32_t 4CC_BC4U = MakeFourCC('B', 'C', '4', 'U');
+    static constexpr uint32_t 4CC_BC5U = MakeFourCC('B', 'C', '5', 'U');
+    static constexpr uint32_t 4CC_DX10 = MakeFourCC('D', 'X', '1', '0');
+
+    enum PixelFormatFlagBits : uint32_t {
         AlphaPixels = 0x00000001,  ///< image has alpha channel
         AlphaOnly = 0x00000002,    ///< image has only the alpha channel
         FourCC = 0x00000004,       ///< image is compressed
@@ -45,8 +59,8 @@ public:
         Normal = 0x80000000u,  ///< image is a tangent space normal map
     };
 
-    enum class DXGIFormat : uint32_t {
-        Unknown = 0,
+    enum DXGIFormat : uint32_t {
+        Format_Unknown = 0,
         R32G32B32A32_Typeless = 1,
         R32G32B32A32_Float = 2,
         R32G32B32A32_UInt = 3,
@@ -177,7 +191,7 @@ public:
         LinearSize = 0x00080000,
     };
 
-    enum class HeaderCaps2FlagBits : uint32_t {
+    enum HeaderCaps2FlagBits : uint32_t {
         CubemapPositiveX = 0x00000600,
         CubemapNegativeX = 0x00000a00,
         CubemapPositiveY = 0x00001200,
@@ -220,7 +234,7 @@ public:
     };
 
     enum class TextureDimension : uint32_t {
-        Unknown = 0,
+        Dimension_Unknown = 0,
         Texture1D = 2,
         Texture2D = 3,
         Texture3D = 4
@@ -229,8 +243,8 @@ public:
     enum class DXT10MiscFlagBits : uint32_t { TextureCube = 0x4 };
 
     struct HeaderDXT10 {
-        DXGIFormat format = DXGIFormat::Unknown;
-        TextureDimension resourceDimension = TextureDimension::Unknown;
+        DXGIFormat format = Format_Unknown;
+        TextureDimension resourceDimension = Dimension_Unknown;
         uint32_t miscFlag = 0;
         uint32_t arraySize = 1;
         uint32_t miscFlag2 = 0;
@@ -316,7 +330,6 @@ public:
 
 public:
     static bool IsCompressed(DXGIFormat fmt);
-    static uint32_t MakeFourCC(char ch0, char ch1, char ch2, char ch3);
     static DXGIFormat GetDXGIFormat(const PixelFormat& pf);
     static uint32_t GetBitsPerPixel(DXGIFormat fmt);
 
@@ -394,34 +407,34 @@ const char DDSFile::Magic[4] = {'D', 'D', 'S', ' '};
 
 bool DDSFile::IsCompressed(DXGIFormat fmt) {
     switch (fmt) {
-        case DXGIFormat::BC1_Typeless:
-        case DXGIFormat::BC1_UNorm:
-        case DXGIFormat::BC1_UNorm_SRGB:
-        case DXGIFormat::BC2_Typeless:
-        case DXGIFormat::BC2_UNorm:
-        case DXGIFormat::BC2_UNorm_SRGB:
-        case DXGIFormat::BC3_Typeless:
-        case DXGIFormat::BC3_UNorm:
-        case DXGIFormat::BC3_UNorm_SRGB:
-        case DXGIFormat::BC4_Typeless:
-        case DXGIFormat::BC4_UNorm:
-        case DXGIFormat::BC4_SNorm:
-        case DXGIFormat::BC5_Typeless:
-        case DXGIFormat::BC5_UNorm:
-        case DXGIFormat::BC5_SNorm:
-        case DXGIFormat::BC6H_Typeless:
-        case DXGIFormat::BC6H_UF16:
-        case DXGIFormat::BC6H_SF16:
-        case DXGIFormat::BC7_Typeless:
-        case DXGIFormat::BC7_UNorm:
-        case DXGIFormat::BC7_UNorm_SRGB:
+        case BC1_Typeless:
+        case BC1_UNorm:
+        case BC1_UNorm_SRGB:
+        case BC2_Typeless:
+        case BC2_UNorm:
+        case BC2_UNorm_SRGB:
+        case BC3_Typeless:
+        case BC3_UNorm:
+        case BC3_UNorm_SRGB:
+        case BC4_Typeless:
+        case BC4_UNorm:
+        case BC4_SNorm:
+        case BC5_Typeless:
+        case BC5_UNorm:
+        case BC5_SNorm:
+        case BC6H_Typeless:
+        case BC6H_UF16:
+        case BC6H_SF16:
+        case BC7_Typeless:
+        case BC7_UNorm:
+        case BC7_UNorm_SRGB:
             return true;
         default:
             return false;
     }
 }
 
-uint32_t DDSFile::MakeFourCC(char ch0, char ch1, char ch2, char ch3) {
+constexpr uint32_t DDSFile::MakeFourCC(char ch0, char ch1, char ch2, char ch3) {
     return (uint32_t(uint8_t(ch0)) | (uint32_t(uint8_t(ch1)) << 8) |
             (uint32_t(uint8_t(ch2)) << 16) | (uint32_t(uint8_t(ch3)) << 24));
 }
@@ -432,25 +445,25 @@ DDSFile::DXGIFormat DDSFile::GetDXGIFormat(const PixelFormat& pf) {
             case 32:
                 if (pf.RBitMask == 0x000000ff && pf.GBitMask == 0x0000ff00 &&
                     pf.BBitMask == 0x00ff0000 && pf.ABitMask == 0xff000000) {
-                    return DXGIFormat::R8G8B8A8_UNorm;
+                    return R8G8B8A8_UNorm;
                 }
                 if (pf.RBitMask == 0x00ff0000 && pf.GBitMask == 0x0000ff00 &&
                     pf.BBitMask == 0x000000ff && pf.ABitMask == 0xff000000) {
-                    return DXGIFormat::B8G8R8A8_UNorm;
+                    return B8G8R8A8_UNorm;
                 }
                 if (pf.RBitMask == 0x00ff0000 && pf.GBitMask == 0x0000ff00 &&
                     pf.BBitMask == 0x000000ff && pf.ABitMask == 0x00000000) {
-                    return DXGIFormat::B8G8R8X8_UNorm;
+                    return B8G8R8X8_UNorm;
                 }
 
                 if (pf.RBitMask == 0x0000ffff && pf.GBitMask == 0xffff0000 &&
                     pf.BBitMask == 0x00000000 && pf.ABitMask == 0x00000000) {
-                    return DXGIFormat::R16G16_UNorm;
+                    return R16G16_UNorm;
                 }
 
                 if (pf.RBitMask == 0xffffffff && pf.GBitMask == 0x00000000 &&
                     pf.BBitMask == 0x00000000 && pf.ABitMask == 0x00000000) {
-                    return DXGIFormat::R32_Float;
+                    return R32_Float;
                 }
                 break;
             case 24:
@@ -458,26 +471,26 @@ DDSFile::DXGIFormat DDSFile::GetDXGIFormat(const PixelFormat& pf) {
             case 16:
                 if (pf.RBitMask == 0x7c00 && pf.GBitMask == 0x03e0 &&
                     pf.BBitMask == 0x001f && pf.ABitMask == 0x8000) {
-                    return DXGIFormat::B5G5R5A1_UNorm;
+                    return B5G5R5A1_UNorm;
                 }
                 if (pf.RBitMask == 0xf800 && pf.GBitMask == 0x07e0 &&
                     pf.BBitMask == 0x001f && pf.ABitMask == 0x0000) {
-                    return DXGIFormat::B5G6R5_UNorm;
+                    return B5G6R5_UNorm;
                 }
 
                 if (pf.RBitMask == 0x0f00 && pf.GBitMask == 0x00f0 &&
                     pf.BBitMask == 0x000f && pf.ABitMask == 0xf000) {
-                    return DXGIFormat::B4G4R4A4_UNorm;
+                    return B4G4R4A4_UNorm;
                 }
                 if (pf.RBitMask == 0x00ff && pf.GBitMask == 0xff00 &&
                     pf.BBitMask == 0x0000 && pf.ABitMask == 0x0000) {
-                    return DXGIFormat::R8G8_UNorm;
+                    return R8G8_UNorm;
                 }
                 break;
             case 8:
                 if (pf.RBitMask == 0x00ff && pf.GBitMask == 0x0000 &&
                     pf.BBitMask == 0x0000 && pf.ABitMask == 0x0000) {
-                    return DXGIFormat::R8_UNorm;
+                    return R8_UNorm;
                 }
                 break;
             default:
@@ -487,253 +500,253 @@ DDSFile::DXGIFormat DDSFile::GetDXGIFormat(const PixelFormat& pf) {
         if (8 == pf.bitCount) {
             if (pf.RBitMask == 0x000000ff && pf.GBitMask == 0x00000000 &&
                 pf.BBitMask == 0x00000000 && pf.ABitMask == 0x00000000) {
-                return DXGIFormat::R8_UNorm;
+                return R8_UNorm;
             }
             if (pf.RBitMask == 0x000000ff && pf.GBitMask == 0x0000ff00 &&
                 pf.BBitMask == 0x00000000 && pf.ABitMask == 0x00000000) {
-                return DXGIFormat::R8G8_UNorm;
+                return R8G8_UNorm;
             }
         }
         if (16 == pf.bitCount) {
             if (pf.RBitMask == 0x0000ffff && pf.GBitMask == 0x00000000 &&
                 pf.BBitMask == 0x00000000 && pf.ABitMask == 0x00000000) {
-                return DXGIFormat::R16_UNorm;
+                return R16_UNorm;
             }
             if (pf.RBitMask == 0x000000ff && pf.GBitMask == 0x0000ff00 &&
                 pf.BBitMask == 0x00000000 && pf.ABitMask == 0x00000000) {
-                return DXGIFormat::R8G8_UNorm;
+                return R8G8_UNorm;
             }
         }
     } else if (pf.flags & uint32_t(PixelFormatFlagBits::AlphaOnly)) {
         if (8 == pf.bitCount) {
-            return DXGIFormat::A8_UNorm;
+            return A8_UNorm;
         }
     } else if (pf.flags & uint32_t(PixelFormatFlagBits::BumpDUDV)) {
         if (16 == pf.bitCount) {
             if (pf.RBitMask == 0x00ff && pf.GBitMask == 0xff00 &&
                 pf.BBitMask == 0x0000 && pf.ABitMask == 0x0000) {
-                return DXGIFormat::R8G8_SNorm;
+                return R8G8_SNorm;
             }
         }
         if (32 == pf.bitCount) {
             if (pf.RBitMask == 0x000000ff && pf.GBitMask == 0x0000ff00 &&
                 pf.BBitMask == 0x00ff0000 && pf.ABitMask == 0xff000000) {
-                return DXGIFormat::R8G8B8A8_SNorm;
+                return R8G8B8A8_SNorm;
             }
             if (pf.RBitMask == 0x0000ffff && pf.GBitMask == 0xffff0000 &&
                 pf.BBitMask == 0x00000000 && pf.ABitMask == 0x00000000) {
-                return DXGIFormat::R16G16_SNorm;
+                return R16G16_SNorm;
             }
         }
     } else if (pf.flags & uint32_t(PixelFormatFlagBits::FourCC)) {
         if (MakeFourCC('D', 'X', 'T', '1') == pf.fourCC) {
-            return DXGIFormat::BC1_UNorm;
+            return BC1_UNorm;
         }
         if (MakeFourCC('D', 'X', 'T', '3') == pf.fourCC) {
-            return DXGIFormat::BC2_UNorm;
+            return BC2_UNorm;
         }
         if (MakeFourCC('D', 'X', 'T', '5') == pf.fourCC) {
-            return DXGIFormat::BC3_UNorm;
+            return BC3_UNorm;
         }
 
         if (MakeFourCC('D', 'X', 'T', '4') == pf.fourCC) {
-            return DXGIFormat::BC2_UNorm;
+            return BC2_UNorm;
         }
         if (MakeFourCC('D', 'X', 'T', '5') == pf.fourCC) {
-            return DXGIFormat::BC3_UNorm;
+            return BC3_UNorm;
         }
 
         if (MakeFourCC('A', 'T', 'I', '1') == pf.fourCC) {
-            return DXGIFormat::BC4_UNorm;
+            return BC4_UNorm;
         }
         if (MakeFourCC('B', 'C', '4', 'U') == pf.fourCC) {
-            return DXGIFormat::BC4_UNorm;
+            return BC4_UNorm;
         }
         if (MakeFourCC('B', 'C', '4', 'S') == pf.fourCC) {
-            return DXGIFormat::BC4_SNorm;
+            return BC4_SNorm;
         }
 
         if (MakeFourCC('A', 'T', 'I', '2') == pf.fourCC) {
-            return DXGIFormat::BC5_UNorm;
+            return BC5_UNorm;
         }
         if (MakeFourCC('B', 'C', '5', 'U') == pf.fourCC) {
-            return DXGIFormat::BC5_UNorm;
+            return BC5_UNorm;
         }
         if (MakeFourCC('B', 'C', '5', 'S') == pf.fourCC) {
-            return DXGIFormat::BC5_SNorm;
+            return BC5_SNorm;
         }
 
         if (MakeFourCC('R', 'G', 'B', 'G') == pf.fourCC) {
-            return DXGIFormat::R8G8_B8G8_UNorm;
+            return R8G8_B8G8_UNorm;
         }
         if (MakeFourCC('G', 'R', 'G', 'B') == pf.fourCC) {
-            return DXGIFormat::G8R8_G8B8_UNorm;
+            return G8R8_G8B8_UNorm;
         }
 
         if (MakeFourCC('Y', 'U', 'Y', '2') == pf.fourCC) {
-            return DXGIFormat::YUY2;
+            return YUY2;
         }
 
         switch (pf.fourCC) {
             case 36:
-                return DXGIFormat::R16G16B16A16_UNorm;
+                return R16G16B16A16_UNorm;
             case 110:
-                return DXGIFormat::R16G16B16A16_SNorm;
+                return R16G16B16A16_SNorm;
             case 111:
-                return DXGIFormat::R16_Float;
+                return R16_Float;
             case 112:
-                return DXGIFormat::R16G16_Float;
+                return R16G16_Float;
             case 113:
-                return DXGIFormat::R16G16B16A16_Float;
+                return R16G16B16A16_Float;
             case 114:
-                return DXGIFormat::R32_Float;
+                return R32_Float;
             case 115:
-                return DXGIFormat::R32G32_Float;
+                return R32G32_Float;
             case 116:
-                return DXGIFormat::R32G32B32A32_Float;
+                return R32G32B32A32_Float;
         }
     }
 
-    return DXGIFormat::Unknown;
+    return Format_Unknown;
 }
 
 uint32_t DDSFile::GetBitsPerPixel(DXGIFormat fmt) {
     switch (fmt) {
-        case DXGIFormat::R32G32B32A32_Typeless:
-        case DXGIFormat::R32G32B32A32_Float:
-        case DXGIFormat::R32G32B32A32_UInt:
-        case DXGIFormat::R32G32B32A32_SInt:
+        case R32G32B32A32_Typeless:
+        case R32G32B32A32_Float:
+        case R32G32B32A32_UInt:
+        case R32G32B32A32_SInt:
             return 128;
 
-        case DXGIFormat::R32G32B32_Typeless:
-        case DXGIFormat::R32G32B32_Float:
-        case DXGIFormat::R32G32B32_UInt:
-        case DXGIFormat::R32G32B32_SInt:
+        case R32G32B32_Typeless:
+        case R32G32B32_Float:
+        case R32G32B32_UInt:
+        case R32G32B32_SInt:
             return 96;
 
-        case DXGIFormat::R16G16B16A16_Typeless:
-        case DXGIFormat::R16G16B16A16_Float:
-        case DXGIFormat::R16G16B16A16_UNorm:
-        case DXGIFormat::R16G16B16A16_UInt:
-        case DXGIFormat::R16G16B16A16_SNorm:
-        case DXGIFormat::R16G16B16A16_SInt:
-        case DXGIFormat::R32G32_Typeless:
-        case DXGIFormat::R32G32_Float:
-        case DXGIFormat::R32G32_UInt:
-        case DXGIFormat::R32G32_SInt:
-        case DXGIFormat::R32G8X24_Typeless:
-        case DXGIFormat::D32_Float_S8X24_UInt:
-        case DXGIFormat::R32_Float_X8X24_Typeless:
-        case DXGIFormat::X32_Typeless_G8X24_UInt:
-        case DXGIFormat::Y416:
-        case DXGIFormat::Y210:
-        case DXGIFormat::Y216:
+        case R16G16B16A16_Typeless:
+        case R16G16B16A16_Float:
+        case R16G16B16A16_UNorm:
+        case R16G16B16A16_UInt:
+        case R16G16B16A16_SNorm:
+        case R16G16B16A16_SInt:
+        case R32G32_Typeless:
+        case R32G32_Float:
+        case R32G32_UInt:
+        case R32G32_SInt:
+        case R32G8X24_Typeless:
+        case D32_Float_S8X24_UInt:
+        case R32_Float_X8X24_Typeless:
+        case X32_Typeless_G8X24_UInt:
+        case Y416:
+        case Y210:
+        case Y216:
             return 64;
 
-        case DXGIFormat::R10G10B10A2_Typeless:
-        case DXGIFormat::R10G10B10A2_UNorm:
-        case DXGIFormat::R10G10B10A2_UInt:
-        case DXGIFormat::R11G11B10_Float:
-        case DXGIFormat::R8G8B8A8_Typeless:
-        case DXGIFormat::R8G8B8A8_UNorm:
-        case DXGIFormat::R8G8B8A8_UNorm_SRGB:
-        case DXGIFormat::R8G8B8A8_UInt:
-        case DXGIFormat::R8G8B8A8_SNorm:
-        case DXGIFormat::R8G8B8A8_SInt:
-        case DXGIFormat::R16G16_Typeless:
-        case DXGIFormat::R16G16_Float:
-        case DXGIFormat::R16G16_UNorm:
-        case DXGIFormat::R16G16_UInt:
-        case DXGIFormat::R16G16_SNorm:
-        case DXGIFormat::R16G16_SInt:
-        case DXGIFormat::R32_Typeless:
-        case DXGIFormat::D32_Float:
-        case DXGIFormat::R32_Float:
-        case DXGIFormat::R32_UInt:
-        case DXGIFormat::R32_SInt:
-        case DXGIFormat::R24G8_Typeless:
-        case DXGIFormat::D24_UNorm_S8_UInt:
-        case DXGIFormat::R24_UNorm_X8_Typeless:
-        case DXGIFormat::X24_Typeless_G8_UInt:
-        case DXGIFormat::R9G9B9E5_SHAREDEXP:
-        case DXGIFormat::R8G8_B8G8_UNorm:
-        case DXGIFormat::G8R8_G8B8_UNorm:
-        case DXGIFormat::B8G8R8A8_UNorm:
-        case DXGIFormat::B8G8R8X8_UNorm:
-        case DXGIFormat::R10G10B10_XR_BIAS_A2_UNorm:
-        case DXGIFormat::B8G8R8A8_Typeless:
-        case DXGIFormat::B8G8R8A8_UNorm_SRGB:
-        case DXGIFormat::B8G8R8X8_Typeless:
-        case DXGIFormat::B8G8R8X8_UNorm_SRGB:
-        case DXGIFormat::AYUV:
-        case DXGIFormat::Y410:
-        case DXGIFormat::YUY2:
+        case R10G10B10A2_Typeless:
+        case R10G10B10A2_UNorm:
+        case R10G10B10A2_UInt:
+        case R11G11B10_Float:
+        case R8G8B8A8_Typeless:
+        case R8G8B8A8_UNorm:
+        case R8G8B8A8_UNorm_SRGB:
+        case R8G8B8A8_UInt:
+        case R8G8B8A8_SNorm:
+        case R8G8B8A8_SInt:
+        case R16G16_Typeless:
+        case R16G16_Float:
+        case R16G16_UNorm:
+        case R16G16_UInt:
+        case R16G16_SNorm:
+        case R16G16_SInt:
+        case R32_Typeless:
+        case D32_Float:
+        case R32_Float:
+        case R32_UInt:
+        case R32_SInt:
+        case R24G8_Typeless:
+        case D24_UNorm_S8_UInt:
+        case R24_UNorm_X8_Typeless:
+        case X24_Typeless_G8_UInt:
+        case R9G9B9E5_SHAREDEXP:
+        case R8G8_B8G8_UNorm:
+        case G8R8_G8B8_UNorm:
+        case B8G8R8A8_UNorm:
+        case B8G8R8X8_UNorm:
+        case R10G10B10_XR_BIAS_A2_UNorm:
+        case B8G8R8A8_Typeless:
+        case B8G8R8A8_UNorm_SRGB:
+        case B8G8R8X8_Typeless:
+        case B8G8R8X8_UNorm_SRGB:
+        case AYUV:
+        case Y410:
+        case YUY2:
             return 32;
 
-        case DXGIFormat::P010:
-        case DXGIFormat::P016:
+        case P010:
+        case P016:
             return 24;
 
-        case DXGIFormat::R8G8_Typeless:
-        case DXGIFormat::R8G8_UNorm:
-        case DXGIFormat::R8G8_UInt:
-        case DXGIFormat::R8G8_SNorm:
-        case DXGIFormat::R8G8_SInt:
-        case DXGIFormat::R16_Typeless:
-        case DXGIFormat::R16_Float:
-        case DXGIFormat::D16_UNorm:
-        case DXGIFormat::R16_UNorm:
-        case DXGIFormat::R16_UInt:
-        case DXGIFormat::R16_SNorm:
-        case DXGIFormat::R16_SInt:
-        case DXGIFormat::B5G6R5_UNorm:
-        case DXGIFormat::B5G5R5A1_UNorm:
-        case DXGIFormat::A8P8:
-        case DXGIFormat::B4G4R4A4_UNorm:
+        case R8G8_Typeless:
+        case R8G8_UNorm:
+        case R8G8_UInt:
+        case R8G8_SNorm:
+        case R8G8_SInt:
+        case R16_Typeless:
+        case R16_Float:
+        case D16_UNorm:
+        case R16_UNorm:
+        case R16_UInt:
+        case R16_SNorm:
+        case R16_SInt:
+        case B5G6R5_UNorm:
+        case B5G5R5A1_UNorm:
+        case A8P8:
+        case B4G4R4A4_UNorm:
             return 16;
 
-        case DXGIFormat::NV12:
-        case DXGIFormat::YUV420_OPAQUE:
-        case DXGIFormat::NV11:
+        case NV12:
+        case YUV420_OPAQUE:
+        case NV11:
             return 12;
 
-        case DXGIFormat::R8_Typeless:
-        case DXGIFormat::R8_UNorm:
-        case DXGIFormat::R8_UInt:
-        case DXGIFormat::R8_SNorm:
-        case DXGIFormat::R8_SInt:
-        case DXGIFormat::A8_UNorm:
-        case DXGIFormat::AI44:
-        case DXGIFormat::IA44:
-        case DXGIFormat::P8:
+        case R8_Typeless:
+        case R8_UNorm:
+        case R8_UInt:
+        case R8_SNorm:
+        case R8_SInt:
+        case A8_UNorm:
+        case AI44:
+        case IA44:
+        case P8:
             return 8;
 
-        case DXGIFormat::R1_UNorm:
+        case R1_UNorm:
             return 1;
 
-        case DXGIFormat::BC1_Typeless:
-        case DXGIFormat::BC1_UNorm:
-        case DXGIFormat::BC1_UNorm_SRGB:
-        case DXGIFormat::BC4_Typeless:
-        case DXGIFormat::BC4_UNorm:
-        case DXGIFormat::BC4_SNorm:
+        case BC1_Typeless:
+        case BC1_UNorm:
+        case BC1_UNorm_SRGB:
+        case BC4_Typeless:
+        case BC4_UNorm:
+        case BC4_SNorm:
             return 4;
 
-        case DXGIFormat::BC2_Typeless:
-        case DXGIFormat::BC2_UNorm:
-        case DXGIFormat::BC2_UNorm_SRGB:
-        case DXGIFormat::BC3_Typeless:
-        case DXGIFormat::BC3_UNorm:
-        case DXGIFormat::BC3_UNorm_SRGB:
-        case DXGIFormat::BC5_Typeless:
-        case DXGIFormat::BC5_UNorm:
-        case DXGIFormat::BC5_SNorm:
-        case DXGIFormat::BC6H_Typeless:
-        case DXGIFormat::BC6H_UF16:
-        case DXGIFormat::BC6H_SF16:
-        case DXGIFormat::BC7_Typeless:
-        case DXGIFormat::BC7_UNorm:
-        case DXGIFormat::BC7_UNorm_SRGB:
+        case BC2_Typeless:
+        case BC2_UNorm:
+        case BC2_UNorm_SRGB:
+        case BC3_Typeless:
+        case BC3_UNorm:
+        case BC3_UNorm_SRGB:
+        case BC5_Typeless:
+        case BC5_UNorm:
+        case BC5_SNorm:
+        case BC6H_Typeless:
+        case BC6H_UF16:
+        case BC6H_SF16:
+        case BC7_Typeless:
+        case BC7_UNorm:
+        case BC7_UNorm_SRGB:
             return 8;
         default:
             return 0;
@@ -839,10 +852,10 @@ Result DDSFile::VerifyHeader() {
         }
 
         switch (m_headerDXT10.format) {
-            case DXGIFormat::AI44:
-            case DXGIFormat::IA44:
-            case DXGIFormat::P8:
-            case DXGIFormat::A8P8:
+            case AI44:
+            case IA44:
+            case P8:
+            case A8P8:
                 return Result::ErrorNotSupported;
             default:
                 if (GetBitsPerPixel(m_headerDXT10.format) == 0) {
@@ -851,14 +864,14 @@ Result DDSFile::VerifyHeader() {
         }
 
         switch (m_headerDXT10.resourceDimension) {
-            case TextureDimension::Texture1D:
+            case Texture1D:
                 if ((m_header.flags & uint32_t(HeaderFlagBits::Height) &&
                      (m_header.height != 1))) {
                     return Result::ErrorInvalidData;
                 }
                 m_header.height = m_header.depth = 1;
                 break;
-            case TextureDimension::Texture2D:
+            case Texture2D:
                 if (m_headerDXT10.miscFlag &
                     uint32_t(DXT10MiscFlagBits::TextureCube)) {
                     m_headerDXT10.arraySize *= 6;
@@ -866,7 +879,7 @@ Result DDSFile::VerifyHeader() {
                 }
                 m_header.depth = 1;
                 break;
-            case TextureDimension::Texture3D:
+            case Texture3D:
                 if (!(m_header.flags & uint32_t(HeaderFlagBits::Volume))) {
                     return Result::ErrorInvalidData;
                 }
@@ -880,17 +893,16 @@ Result DDSFile::VerifyHeader() {
 
     } else {
         m_headerDXT10.format = GetDXGIFormat(m_header.pixelFormat);
-        if (m_headerDXT10.format == DXGIFormat::Unknown) {
+        if (m_headerDXT10.format == Format_Unknown) {
             return Result::ErrorNotSupported;
         }
 
         if (m_header.flags & uint32_t(HeaderFlagBits::Volume)) {
-            m_headerDXT10.resourceDimension = TextureDimension::Texture3D;
+            m_headerDXT10.resourceDimension = Texture3D;
         } else {
-            auto caps2 =
-                m_header.caps2 & uint32_t(HeaderCaps2FlagBits::CubemapAllFaces);
+            auto caps2 = m_header.caps2 & uint32_t(CubemapAllFaces);
             if (caps2) {
-                if (caps2 != uint32_t(HeaderCaps2FlagBits::CubemapAllFaces)) {
+                if (caps2 != uint32_t(CubemapAllFaces)) {
                     return Result::ErrorNotSupported;
                 }
                 m_headerDXT10.arraySize = 6;
@@ -898,7 +910,7 @@ Result DDSFile::VerifyHeader() {
             }
 
             m_header.depth = 1;
-            m_headerDXT10.resourceDimension = TextureDimension::Texture2D;
+            m_headerDXT10.resourceDimension = Texture2D;
         }
     }
 
@@ -963,56 +975,56 @@ void DDSFile::GetImageInfo(uint32_t w, uint32_t h, DXGIFormat fmt,
     bool planar = false;
     uint32_t bpe = 0;
     switch (fmt) {
-        case DXGIFormat::BC1_Typeless:
-        case DXGIFormat::BC1_UNorm:
-        case DXGIFormat::BC1_UNorm_SRGB:
-        case DXGIFormat::BC4_Typeless:
-        case DXGIFormat::BC4_UNorm:
-        case DXGIFormat::BC4_SNorm:
+        case BC1_Typeless:
+        case BC1_UNorm:
+        case BC1_UNorm_SRGB:
+        case BC4_Typeless:
+        case BC4_UNorm:
+        case BC4_SNorm:
             bc = true;
             bpe = 8;
             break;
 
-        case DXGIFormat::BC2_Typeless:
-        case DXGIFormat::BC2_UNorm:
-        case DXGIFormat::BC2_UNorm_SRGB:
-        case DXGIFormat::BC3_Typeless:
-        case DXGIFormat::BC3_UNorm:
-        case DXGIFormat::BC3_UNorm_SRGB:
-        case DXGIFormat::BC5_Typeless:
-        case DXGIFormat::BC5_UNorm:
-        case DXGIFormat::BC5_SNorm:
-        case DXGIFormat::BC6H_Typeless:
-        case DXGIFormat::BC6H_UF16:
-        case DXGIFormat::BC6H_SF16:
-        case DXGIFormat::BC7_Typeless:
-        case DXGIFormat::BC7_UNorm:
-        case DXGIFormat::BC7_UNorm_SRGB:
+        case BC2_Typeless:
+        case BC2_UNorm:
+        case BC2_UNorm_SRGB:
+        case BC3_Typeless:
+        case BC3_UNorm:
+        case BC3_UNorm_SRGB:
+        case BC5_Typeless:
+        case BC5_UNorm:
+        case BC5_SNorm:
+        case BC6H_Typeless:
+        case BC6H_UF16:
+        case BC6H_SF16:
+        case BC7_Typeless:
+        case BC7_UNorm:
+        case BC7_UNorm_SRGB:
             bc = true;
             bpe = 16;
             break;
 
-        case DXGIFormat::R8G8_B8G8_UNorm:
-        case DXGIFormat::G8R8_G8B8_UNorm:
-        case DXGIFormat::YUY2:
+        case R8G8_B8G8_UNorm:
+        case G8R8_G8B8_UNorm:
+        case YUY2:
             packed = true;
             bpe = 4;
             break;
 
-        case DXGIFormat::Y210:
-        case DXGIFormat::Y216:
+        case Y210:
+        case Y216:
             packed = true;
             bpe = 8;
             break;
 
-        case DXGIFormat::NV12:
-        case DXGIFormat::YUV420_OPAQUE:
+        case NV12:
+        case YUV420_OPAQUE:
             planar = true;
             bpe = 2;
             break;
 
-        case DXGIFormat::P010:
-        case DXGIFormat::P016:
+        case P010:
+        case P016:
             planar = true;
             bpe = 4;
             break;
@@ -1036,7 +1048,7 @@ void DDSFile::GetImageInfo(uint32_t w, uint32_t h, DXGIFormat fmt,
         rowBytes = ((w + 1) >> 1) * bpe;
         numRows = h;
         numBytes = rowBytes * h;
-    } else if (fmt == DXGIFormat::NV11) {
+    } else if (fmt == NV11) {
         rowBytes = ((w + 3) >> 2) * 4;
         numRows = h * 2;
         numBytes = rowBytes + numRows;
@@ -1094,29 +1106,29 @@ bool DDSFile::FlipImage(ImageData& imageData) {
 }
 
 bool DDSFile::FlipCompressedImage(ImageData& imageData) {
-    if (DXGIFormat::BC1_Typeless == m_headerDXT10.format ||
-        DXGIFormat::BC1_UNorm == m_headerDXT10.format ||
-        DXGIFormat::BC1_UNorm_SRGB == m_headerDXT10.format) {
+    if (BC1_Typeless == m_headerDXT10.format ||
+        BC1_UNorm == m_headerDXT10.format ||
+        BC1_UNorm_SRGB == m_headerDXT10.format) {
         FlipCompressedImageBC1(imageData);
         return true;
-    } else if (DXGIFormat::BC2_Typeless == m_headerDXT10.format ||
-               DXGIFormat::BC2_UNorm == m_headerDXT10.format ||
-               DXGIFormat::BC2_UNorm_SRGB == m_headerDXT10.format) {
+    } else if (BC2_Typeless == m_headerDXT10.format ||
+               BC2_UNorm == m_headerDXT10.format ||
+               BC2_UNorm_SRGB == m_headerDXT10.format) {
         FlipCompressedImageBC2(imageData);
         return true;
-    } else if (DXGIFormat::BC3_Typeless == m_headerDXT10.format ||
-               DXGIFormat::BC3_UNorm == m_headerDXT10.format ||
-               DXGIFormat::BC3_UNorm_SRGB == m_headerDXT10.format) {
+    } else if (BC3_Typeless == m_headerDXT10.format ||
+               BC3_UNorm == m_headerDXT10.format ||
+               BC3_UNorm_SRGB == m_headerDXT10.format) {
         FlipCompressedImageBC3(imageData);
         return true;
-    } else if (DXGIFormat::BC4_Typeless == m_headerDXT10.format ||
-               DXGIFormat::BC4_UNorm == m_headerDXT10.format ||
-               DXGIFormat::BC4_SNorm == m_headerDXT10.format) {
+    } else if (BC4_Typeless == m_headerDXT10.format ||
+               BC4_UNorm == m_headerDXT10.format ||
+               BC4_SNorm == m_headerDXT10.format) {
         FlipCompressedImageBC4(imageData);
         return true;
-    } else if (DXGIFormat::BC5_Typeless == m_headerDXT10.format ||
-               DXGIFormat::BC5_UNorm == m_headerDXT10.format ||
-               DXGIFormat::BC5_SNorm == m_headerDXT10.format) {
+    } else if (BC5_Typeless == m_headerDXT10.format ||
+               BC5_UNorm == m_headerDXT10.format ||
+               BC5_SNorm == m_headerDXT10.format) {
         FlipCompressedImageBC5(imageData);
         return true;
     }
