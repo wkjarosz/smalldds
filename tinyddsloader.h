@@ -1010,11 +1010,10 @@ Result DDSFile::VerifyHeader() {
                         }
                     } break;
                 }
-            }
+            } break;
+            default:
+                return Result::ErrorInvalidData;
         }
-        break;
-        default:
-            return Result::ErrorInvalidData;
     }
 }
 
