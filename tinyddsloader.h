@@ -56,6 +56,20 @@ public:
     static constexpr uint32_t GRGB_4CC = MakeFourCC('G', 'R', 'G', 'B');
     static constexpr uint32_t YUY2_4CC = MakeFourCC('Y', 'U', 'Y', '2');
 
+    enum class Compression {
+        None,
+        DXT1,  // aka BC1
+        DXT2,
+        DXT3,  // aka BC2
+        DXT4,
+        DXT5,  // aka BC3
+        BC4,   // aka ATI1
+        BC5,   // aka ATI2
+        BC6HU,
+        BC6HS,
+        BC7
+    };
+
     enum PixelFormatFlagBits : uint32_t {
         AlphaPixels = 0x00000001,  ///< image has alpha channel
         AlphaOnly = 0x00000002,    ///< image has only the alpha channel
@@ -371,6 +385,7 @@ public:
     TextureDimension GetTextureDimension() const {
         return m_headerDXT10.resourceDimension;
     }
+    Compression GetCompression() const { return m_compression; }
 
 private:
     Result VerifyHeader();
@@ -394,6 +409,7 @@ private:
     HeaderDXT10 m_headerDXT10;
     bool m_headerVerified = false;
     bool m_isCubemap;
+    Compression m_compression = Compression::None;
 };
 
 }  // namespace tinyddsloader
@@ -893,6 +909,78 @@ Result DDSFile::VerifyHeader() {
 
             m_header.depth = 1;
             m_headerDXT10.resourceDimension = Texture2D;
+        }
+    }
+
+    if (m_header.pixelFormat.flags & FourCC) {
+        switch (m_header.pixelFormat.fourCC) {
+            case DXT1_4CC:
+                m_compression = Compression::DXT1;
+                break;
+            case DXT2_4CC:
+                m_compression = Compression::DXT2;
+                break;
+            case DXT3_4CC:
+                m_compression = Compression::DXT3;
+                break;
+            case DXT4_4CC:
+                m_compression = Compression::DXT4;
+                break;
+            case DXT5_4CC:
+                m_compression = Compression::DXT5;
+                break;
+            case RXGB_4CC:
+                m_compression = Compression::DXT5;
+                m_header.pixelFormat.flags &= ~PixelFormatFlagBits::Normal;
+                break;
+            case DDSFile::ATI1_4CC:
+                m_compression = Compression::BC4;
+                break;
+            case DDSFile::ATI2_4CC:
+                m_compression = Compression::BC5;
+                break;
+            case DDSFile::BC4U_4CC:
+                m_compression = Compression::BC4;
+                break;
+            case DDSFile::BC5U_4CC:
+                m_compression = Compression::BC5;
+                break;
+            case DDSFile::DX10_4CC: {
+                switch (m_headerDXT10.format) {
+                    case DDSFile::BC1_UNorm:
+                    case DDSFile::BC1_UNorm_SRGB:
+                        m_compression = Compression::DXT1;
+                        break;
+                    case DDSFile::BC2_UNorm:
+                    case DDSFile::BC2_UNorm_SRGB:
+                        m_compression = Compression::DXT3;
+                        break;
+                    case DDSFile::BC3_UNorm:
+                    case DDSFile::BC3_UNorm_SRGB:
+                        m_compression = Compression::DXT5;
+                        break;
+                    case DDSFile::BC4_UNorm:
+                        m_compression = Compression::BC4;
+                        break;
+                    case DDSFile::BC5_UNorm:
+                        m_compression = Compression::BC5;
+                        break;
+                    case DDSFile::BC6H_UF16:
+                        m_compression = Compression::BC6HU;
+                        break;
+                    case DDSFile::BC6H_SF16:
+                        m_compression = Compression::BC6HS;
+                        break;
+                    case DDSFile::BC7_UNorm:
+                    case DDSFile::BC7_UNorm_SRGB:
+                        m_compression = Compression::BC7;
+                        break;
+                    default:
+                        return Result::ErrorInvalidData;
+                }
+            } break;
+            default:
+                return Result::ErrorInvalidData;
         }
     }
 
