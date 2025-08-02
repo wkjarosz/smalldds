@@ -975,17 +975,51 @@ Result DDSFile::VerifyHeader() {
                     case DDSFile::BC7_UNorm_SRGB:
                         m_compression = Compression::BC7;
                         break;
-                    default:
-                        return Result::ErrorInvalidData;
+                    default: {
+                        auto& masks = m_header.pixelFormat.masks;
+                        masks[0] = masks[1] = masks[2] = masks[3] = 0;
+                        switch (m_headerDXT10.format) {
+                            case R16_UNorm:
+                                masks[0] = 0xFFFF;
+                                break;
+                            case R10G10B10A2_UNorm:
+                                masks[0] = 0x000003FF;
+                                masks[1] = 0x000FFC00;
+                                masks[2] = 0x3FF00000;
+                                masks[3] = 0xC0000000;
+                                break;
+                            case R8G8B8A8_UNorm:
+                            case R8G8B8A8_UNorm_SRGB:
+                                masks[0] = 0x000000FF;
+                                masks[1] = 0x0000FF00;
+                                masks[2] = 0x00FF0000;
+                                masks[3] = 0xFF000000;
+                                break;
+                            case B8G8R8A8_UNorm:
+                            case B8G8R8A8_UNorm_SRGB:
+                                masks[3] = 0xFF000000;
+                                [[fallthrough]];
+                            case B8G8R8X8_UNorm:
+                            case B8G8R8X8_UNorm_SRGB:
+                                masks[0] = 0x00FF0000;
+                                masks[1] = 0x0000FF00;
+                                masks[2] = 0x000000FF;
+                                break;
+                            default:
+                                return Result::ErrorInvalidData;
+                        }
+                    } break;
                 }
-            } break;
-            default:
-                return Result::ErrorInvalidData;
+            }
         }
+        break;
+        default:
+            return Result::ErrorInvalidData;
     }
+}
 
-    m_headerVerified = true;
-    return Result::Success;
+m_headerVerified = true;
+return Result::Success;
 }
 
 Result DDSFile::PopulateImageDatas() {
