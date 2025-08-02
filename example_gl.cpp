@@ -173,28 +173,28 @@ bool LoadGLTexture(GLuint tex, DDSFile& dds) {
                     case GL_TEXTURE_1D:
                         if (IsCompressed(format.m_format)) {
                             glCompressedTexSubImage1D(
-                                target2, level, 0, imageData->m_width,
-                                format.m_format, imageData->m_memSlicePitch,
-                                imageData->m_mem);
+                                target2, level, 0, imageData->width,
+                                format.m_format, imageData->memSlicePitch,
+                                imageData->mem);
                         } else {
-                            glTexSubImage1D(target2, level, 0,
-                                            imageData->m_width, format.m_format,
-                                            format.m_type, imageData->m_mem);
+                            glTexSubImage1D(target2, level, 0, imageData->width,
+                                            format.m_format, format.m_type,
+                                            imageData->mem);
                         }
                         break;
                     case GL_TEXTURE_1D_ARRAY:
                     case GL_TEXTURE_2D:
                     case GL_TEXTURE_CUBE_MAP: {
-                        auto w = imageData->m_width;
-                        auto h = isArray ? layer : imageData->m_height;
+                        auto w = imageData->width;
+                        auto h = isArray ? layer : imageData->height;
                         if (IsCompressed(format.m_format)) {
                             glCompressedTexSubImage2D(
                                 target2, level, 0, 0, w, h, format.m_format,
-                                imageData->m_memSlicePitch, imageData->m_mem);
+                                imageData->memSlicePitch, imageData->mem);
                         } else {
                             glTexSubImage2D(target2, level, 0, 0, w, h,
                                             format.m_format, format.m_type,
-                                            imageData->m_mem);
+                                            imageData->mem);
                         }
                         break;
                     }

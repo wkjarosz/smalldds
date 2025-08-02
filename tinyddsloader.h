@@ -39,17 +39,22 @@ class DDSFile {
 public:
     static const char Magic[4];
 
-    static constexpr uint32_t DXT1 = MakeFourCC('D', 'X', 'T', '1');
-    static constexpr uint32_t DXT2 = MakeFourCC('D', 'X', 'T', '2');
-    static constexpr uint32_t DXT3 = MakeFourCC('D', 'X', 'T', '3');
-    static constexpr uint32_t DXT4 = MakeFourCC('D', 'X', 'T', '4');
-    static constexpr uint32_t DXT5 = MakeFourCC('D', 'X', 'T', '5');
-    static constexpr uint32_t RXGB = MakeFourCC('R', 'X', 'G', 'B');
-    static constexpr uint32_t ATI1 = MakeFourCC('A', 'T', 'I', '1');
-    static constexpr uint32_t ATI2 = MakeFourCC('A', 'T', 'I', '2');
-    static constexpr uint32_t BC4U = MakeFourCC('B', 'C', '4', 'U');
-    static constexpr uint32_t BC5U = MakeFourCC('B', 'C', '5', 'U');
-    static constexpr uint32_t DX10 = MakeFourCC('D', 'X', '1', '0');
+    static constexpr uint32_t DXT1_4CC = MakeFourCC('D', 'X', 'T', '1');
+    static constexpr uint32_t DXT2_4CC = MakeFourCC('D', 'X', 'T', '2');
+    static constexpr uint32_t DXT3_4CC = MakeFourCC('D', 'X', 'T', '3');
+    static constexpr uint32_t DXT4_4CC = MakeFourCC('D', 'X', 'T', '4');
+    static constexpr uint32_t DXT5_4CC = MakeFourCC('D', 'X', 'T', '5');
+    static constexpr uint32_t RXGB_4CC = MakeFourCC('R', 'X', 'G', 'B');
+    static constexpr uint32_t ATI1_4CC = MakeFourCC('A', 'T', 'I', '1');
+    static constexpr uint32_t ATI2_4CC = MakeFourCC('A', 'T', 'I', '2');
+    static constexpr uint32_t BC4U_4CC = MakeFourCC('B', 'C', '4', 'U');
+    static constexpr uint32_t BC5U_4CC = MakeFourCC('B', 'C', '5', 'U');
+    static constexpr uint32_t DX10_4CC = MakeFourCC('D', 'X', '1', '0');
+    static constexpr uint32_t BC4S_4CC = MakeFourCC('B', 'C', '4', 'S');
+    static constexpr uint32_t BC5S_4CC = MakeFourCC('B', 'C', '5', 'S');
+    static constexpr uint32_t RGBG_4CC = MakeFourCC('R', 'G', 'B', 'G');
+    static constexpr uint32_t GRGB_4CC = MakeFourCC('G', 'R', 'G', 'B');
+    static constexpr uint32_t YUY2_4CC = MakeFourCC('Y', 'U', 'Y', '2');
 
     enum PixelFormatFlagBits : uint32_t {
         AlphaPixels = 0x00000001,  ///< image has alpha channel
@@ -185,13 +190,16 @@ public:
     };
 
     enum class HeaderFlagBits : uint32_t {
+        Caps = 0x00000001,
         Height = 0x00000002,
         Width = 0x00000004,
+        Pitch = 0x00000008,
+        PixelFormat = 0x00001000,
         Texture = 0x00001007,
         Mipmap = 0x00020000,
-        Volume = 0x00800000,
+        Depth = 0x00800000,
         Pitch = 0x00000008,
-        LinearSize = 0x00080000,
+        LinearSize = 0x00080000
     };
 
     enum HeaderCaps2FlagBits : uint32_t {
@@ -212,10 +220,7 @@ public:
         uint32_t flags;
         uint32_t fourCC;
         uint32_t bitCount;
-        uint32_t RBitMask;
-        uint32_t GBitMask;
-        uint32_t BBitMask;
-        uint32_t ABitMask;
+        uint32_t masks[4];
     };
 
     struct Header {
@@ -237,7 +242,7 @@ public:
     };
 
     enum TextureDimension : uint32_t {
-        Dimension_Unknown = 0,
+        Texture0D = 0,  ///< Unknown
         Texture1D = 2,
         Texture2D = 3,
         Texture3D = 4
@@ -247,19 +252,19 @@ public:
 
     struct HeaderDXT10 {
         DXGIFormat format = Format_Unknown;
-        TextureDimension resourceDimension = Dimension_Unknown;
+        TextureDimension resourceDimension = Texture0D;
         uint32_t miscFlag = 0;
         uint32_t arraySize = 1;
         uint32_t miscFlag2 = 0;
     };
 
     struct ImageData {
-        uint32_t m_width;
-        uint32_t m_height;
-        uint32_t m_depth;
-        void* m_mem;
-        uint32_t m_memPitch;
-        uint32_t m_memSlicePitch;
+        uint32_t width;
+        uint32_t height;
+        uint32_t depth;
+        void* mem;
+        uint32_t memPitch;
+        uint32_t memSlicePitch;
     };
 
     struct BC1Block {
@@ -441,53 +446,53 @@ DDSFile::DXGIFormat DDSFile::GetDXGIFormat(const PixelFormat& pf) {
     if (pf.flags & uint32_t(PixelFormatFlagBits::RGB)) {
         switch (pf.bitCount) {
             case 32:
-                if (pf.RBitMask == 0x000000ff && pf.GBitMask == 0x0000ff00 &&
-                    pf.BBitMask == 0x00ff0000 && pf.ABitMask == 0xff000000) {
+                if (pf.masks[0] == 0x000000ff && pf.masks[1] == 0x0000ff00 &&
+                    pf.masks[2] == 0x00ff0000 && pf.masks[3] == 0xff000000) {
                     return R8G8B8A8_UNorm;
                 }
-                if (pf.RBitMask == 0x00ff0000 && pf.GBitMask == 0x0000ff00 &&
-                    pf.BBitMask == 0x000000ff && pf.ABitMask == 0xff000000) {
+                if (pf.masks[0] == 0x00ff0000 && pf.masks[1] == 0x0000ff00 &&
+                    pf.masks[2] == 0x000000ff && pf.masks[3] == 0xff000000) {
                     return B8G8R8A8_UNorm;
                 }
-                if (pf.RBitMask == 0x00ff0000 && pf.GBitMask == 0x0000ff00 &&
-                    pf.BBitMask == 0x000000ff && pf.ABitMask == 0x00000000) {
+                if (pf.masks[0] == 0x00ff0000 && pf.masks[1] == 0x0000ff00 &&
+                    pf.masks[2] == 0x000000ff && pf.masks[3] == 0x00000000) {
                     return B8G8R8X8_UNorm;
                 }
 
-                if (pf.RBitMask == 0x0000ffff && pf.GBitMask == 0xffff0000 &&
-                    pf.BBitMask == 0x00000000 && pf.ABitMask == 0x00000000) {
+                if (pf.masks[0] == 0x0000ffff && pf.masks[1] == 0xffff0000 &&
+                    pf.masks[2] == 0x00000000 && pf.masks[3] == 0x00000000) {
                     return R16G16_UNorm;
                 }
 
-                if (pf.RBitMask == 0xffffffff && pf.GBitMask == 0x00000000 &&
-                    pf.BBitMask == 0x00000000 && pf.ABitMask == 0x00000000) {
+                if (pf.masks[0] == 0xffffffff && pf.masks[1] == 0x00000000 &&
+                    pf.masks[2] == 0x00000000 && pf.masks[3] == 0x00000000) {
                     return R32_Float;
                 }
                 break;
             case 24:
                 break;
             case 16:
-                if (pf.RBitMask == 0x7c00 && pf.GBitMask == 0x03e0 &&
-                    pf.BBitMask == 0x001f && pf.ABitMask == 0x8000) {
+                if (pf.masks[0] == 0x7c00 && pf.masks[1] == 0x03e0 &&
+                    pf.masks[2] == 0x001f && pf.masks[3] == 0x8000) {
                     return B5G5R5A1_UNorm;
                 }
-                if (pf.RBitMask == 0xf800 && pf.GBitMask == 0x07e0 &&
-                    pf.BBitMask == 0x001f && pf.ABitMask == 0x0000) {
+                if (pf.masks[0] == 0xf800 && pf.masks[1] == 0x07e0 &&
+                    pf.masks[2] == 0x001f && pf.masks[3] == 0x0000) {
                     return B5G6R5_UNorm;
                 }
 
-                if (pf.RBitMask == 0x0f00 && pf.GBitMask == 0x00f0 &&
-                    pf.BBitMask == 0x000f && pf.ABitMask == 0xf000) {
+                if (pf.masks[0] == 0x0f00 && pf.masks[1] == 0x00f0 &&
+                    pf.masks[2] == 0x000f && pf.masks[3] == 0xf000) {
                     return B4G4R4A4_UNorm;
                 }
-                if (pf.RBitMask == 0x00ff && pf.GBitMask == 0xff00 &&
-                    pf.BBitMask == 0x0000 && pf.ABitMask == 0x0000) {
+                if (pf.masks[0] == 0x00ff && pf.masks[1] == 0xff00 &&
+                    pf.masks[2] == 0x0000 && pf.masks[3] == 0x0000) {
                     return R8G8_UNorm;
                 }
                 break;
             case 8:
-                if (pf.RBitMask == 0x00ff && pf.GBitMask == 0x0000 &&
-                    pf.BBitMask == 0x0000 && pf.ABitMask == 0x0000) {
+                if (pf.masks[0] == 0x00ff && pf.masks[1] == 0x0000 &&
+                    pf.masks[2] == 0x0000 && pf.masks[3] == 0x0000) {
                     return R8_UNorm;
                 }
                 break;
@@ -496,22 +501,22 @@ DDSFile::DXGIFormat DDSFile::GetDXGIFormat(const PixelFormat& pf) {
         }
     } else if (pf.flags & uint32_t(PixelFormatFlagBits::Luminance)) {
         if (8 == pf.bitCount) {
-            if (pf.RBitMask == 0x000000ff && pf.GBitMask == 0x00000000 &&
-                pf.BBitMask == 0x00000000 && pf.ABitMask == 0x00000000) {
+            if (pf.masks[0] == 0x000000ff && pf.masks[1] == 0x00000000 &&
+                pf.masks[2] == 0x00000000 && pf.masks[3] == 0x00000000) {
                 return R8_UNorm;
             }
-            if (pf.RBitMask == 0x000000ff && pf.GBitMask == 0x0000ff00 &&
-                pf.BBitMask == 0x00000000 && pf.ABitMask == 0x00000000) {
+            if (pf.masks[0] == 0x000000ff && pf.masks[1] == 0x0000ff00 &&
+                pf.masks[2] == 0x00000000 && pf.masks[3] == 0x00000000) {
                 return R8G8_UNorm;
             }
         }
         if (16 == pf.bitCount) {
-            if (pf.RBitMask == 0x0000ffff && pf.GBitMask == 0x00000000 &&
-                pf.BBitMask == 0x00000000 && pf.ABitMask == 0x00000000) {
+            if (pf.masks[0] == 0x0000ffff && pf.masks[1] == 0x00000000 &&
+                pf.masks[2] == 0x00000000 && pf.masks[3] == 0x00000000) {
                 return R16_UNorm;
             }
-            if (pf.RBitMask == 0x000000ff && pf.GBitMask == 0x0000ff00 &&
-                pf.BBitMask == 0x00000000 && pf.ABitMask == 0x00000000) {
+            if (pf.masks[0] == 0x000000ff && pf.masks[1] == 0x0000ff00 &&
+                pf.masks[2] == 0x00000000 && pf.masks[3] == 0x00000000) {
                 return R8G8_UNorm;
             }
         }
@@ -521,71 +526,49 @@ DDSFile::DXGIFormat DDSFile::GetDXGIFormat(const PixelFormat& pf) {
         }
     } else if (pf.flags & uint32_t(PixelFormatFlagBits::BumpDUDV)) {
         if (16 == pf.bitCount) {
-            if (pf.RBitMask == 0x00ff && pf.GBitMask == 0xff00 &&
-                pf.BBitMask == 0x0000 && pf.ABitMask == 0x0000) {
+            if (pf.masks[0] == 0x00ff && pf.masks[1] == 0xff00 &&
+                pf.masks[2] == 0x0000 && pf.masks[3] == 0x0000) {
                 return R8G8_SNorm;
             }
         }
         if (32 == pf.bitCount) {
-            if (pf.RBitMask == 0x000000ff && pf.GBitMask == 0x0000ff00 &&
-                pf.BBitMask == 0x00ff0000 && pf.ABitMask == 0xff000000) {
+            if (pf.masks[0] == 0x000000ff && pf.masks[1] == 0x0000ff00 &&
+                pf.masks[2] == 0x00ff0000 && pf.masks[3] == 0xff000000) {
                 return R8G8B8A8_SNorm;
             }
-            if (pf.RBitMask == 0x0000ffff && pf.GBitMask == 0xffff0000 &&
-                pf.BBitMask == 0x00000000 && pf.ABitMask == 0x00000000) {
+            if (pf.masks[0] == 0x0000ffff && pf.masks[1] == 0xffff0000 &&
+                pf.masks[2] == 0x00000000 && pf.masks[3] == 0x00000000) {
                 return R16G16_SNorm;
             }
         }
     } else if (pf.flags & uint32_t(PixelFormatFlagBits::FourCC)) {
-        if (MakeFourCC('D', 'X', 'T', '1') == pf.fourCC) {
-            return BC1_UNorm;
-        }
-        if (MakeFourCC('D', 'X', 'T', '3') == pf.fourCC) {
-            return BC2_UNorm;
-        }
-        if (MakeFourCC('D', 'X', 'T', '5') == pf.fourCC) {
-            return BC3_UNorm;
-        }
-
-        if (MakeFourCC('D', 'X', 'T', '4') == pf.fourCC) {
-            return BC2_UNorm;
-        }
-        if (MakeFourCC('D', 'X', 'T', '5') == pf.fourCC) {
-            return BC3_UNorm;
-        }
-
-        if (MakeFourCC('A', 'T', 'I', '1') == pf.fourCC) {
-            return BC4_UNorm;
-        }
-        if (MakeFourCC('B', 'C', '4', 'U') == pf.fourCC) {
-            return BC4_UNorm;
-        }
-        if (MakeFourCC('B', 'C', '4', 'S') == pf.fourCC) {
-            return BC4_SNorm;
-        }
-
-        if (MakeFourCC('A', 'T', 'I', '2') == pf.fourCC) {
-            return BC5_UNorm;
-        }
-        if (MakeFourCC('B', 'C', '5', 'U') == pf.fourCC) {
-            return BC5_UNorm;
-        }
-        if (MakeFourCC('B', 'C', '5', 'S') == pf.fourCC) {
-            return BC5_SNorm;
-        }
-
-        if (MakeFourCC('R', 'G', 'B', 'G') == pf.fourCC) {
-            return R8G8_B8G8_UNorm;
-        }
-        if (MakeFourCC('G', 'R', 'G', 'B') == pf.fourCC) {
-            return G8R8_G8B8_UNorm;
-        }
-
-        if (MakeFourCC('Y', 'U', 'Y', '2') == pf.fourCC) {
-            return YUY2;
-        }
-
         switch (pf.fourCC) {
+            case DXT1_4CC:
+                return BC1_UNorm;
+            case DXT3_4CC:
+                return BC2_UNorm;
+            case DXT5_4CC:
+                return BC3_UNorm;
+            case DXT4_4CC:
+                return BC2_UNorm;
+            case ATI1_4CC:
+                return BC4_UNorm;
+            case BC4U_4CC:
+                return BC4_UNorm;
+            case BC4S_4CC:
+                return BC4_SNorm;
+            case ATI2_4CC:
+                return BC5_UNorm;
+            case BC5U_4CC:
+                return BC5_UNorm;
+            case BC5S_4CC:
+                return BC5_SNorm;
+            case RGBG_4CC:
+                return R8G8_B8G8_UNorm;
+            case GRGB_4CC:
+                return G8R8_G8B8_UNorm;
+            case YUY2_4CC:
+                return YUY2;
             case 36:
                 return R16G16B16A16_UNorm;
             case 110:
@@ -602,6 +585,8 @@ DDSFile::DXGIFormat DDSFile::GetDXGIFormat(const PixelFormat& pf) {
                 return R32G32_Float;
             case 116:
                 return R32G32B32A32_Float;
+            default:
+                break;
         }
     }
 
@@ -878,7 +863,7 @@ Result DDSFile::VerifyHeader() {
                 m_header.depth = 1;
                 break;
             case Texture3D:
-                if (!(m_header.flags & uint32_t(HeaderFlagBits::Volume))) {
+                if (!(m_header.flags & uint32_t(HeaderFlagBits::Depth))) {
                     return Result::ErrorInvalidData;
                 }
                 if (m_headerDXT10.arraySize > 1) {
@@ -895,7 +880,7 @@ Result DDSFile::VerifyHeader() {
             return Result::ErrorNotSupported;
         }
 
-        if (m_header.flags & uint32_t(HeaderFlagBits::Volume)) {
+        if (m_header.flags & uint32_t(HeaderFlagBits::Depth)) {
             m_headerDXT10.resourceDimension = Texture3D;
         } else {
             auto caps2 = m_header.caps2 & uint32_t(CubemapAllFaces);
@@ -938,12 +923,12 @@ Result DDSFile::PopulateImageDatas() {
             GetImageInfo(w, h, m_headerDXT10.format, &numBytes, &rowBytes,
                          nullptr);
 
-            imageDatas[idx].m_width = w;
-            imageDatas[idx].m_height = h;
-            imageDatas[idx].m_depth = d;
-            imageDatas[idx].m_mem = srcBits;
-            imageDatas[idx].m_memPitch = rowBytes;
-            imageDatas[idx].m_memSlicePitch = numBytes;
+            imageDatas[idx].width = w;
+            imageDatas[idx].height = h;
+            imageDatas[idx].depth = d;
+            imageDatas[idx].mem = srcBits;
+            imageDatas[idx].memPitch = rowBytes;
+            imageDatas[idx].memSlicePitch = numBytes;
             idx++;
 
             if (srcBits + (numBytes * d) > endBits) {
@@ -1090,11 +1075,11 @@ bool DDSFile::Flip() {
 }
 
 bool DDSFile::FlipImage(ImageData& imageData) {
-    for (uint32_t y = 0; y < imageData.m_height / 2; y++) {
-        auto line0 = (uint8_t*)imageData.m_mem + y * imageData.m_memPitch;
-        auto line1 = (uint8_t*)imageData.m_mem +
-                     (imageData.m_height - y - 1) * imageData.m_memPitch;
-        for (uint32_t i = 0; i < imageData.m_memPitch; i++) {
+    for (uint32_t y = 0; y < imageData.height / 2; y++) {
+        auto line0 = (uint8_t*)imageData.mem + y * imageData.memPitch;
+        auto line1 = (uint8_t*)imageData.mem +
+                     (imageData.height - y - 1) * imageData.memPitch;
+        for (uint32_t i = 0; i < imageData.memPitch; i++) {
             std::swap(*line0, *line1);
             line0++;
             line1++;
@@ -1134,11 +1119,11 @@ bool DDSFile::FlipCompressedImage(ImageData& imageData) {
 }
 
 void DDSFile::FlipCompressedImageBC1(ImageData& imageData) {
-    uint32_t numXBlocks = (imageData.m_width + 3) / 4;
-    uint32_t numYBlocks = (imageData.m_height + 3) / 4;
-    if (imageData.m_height == 1) {
-    } else if (imageData.m_height == 2) {
-        auto blocks = (BC1Block*)imageData.m_mem;
+    uint32_t numXBlocks = (imageData.width + 3) / 4;
+    uint32_t numYBlocks = (imageData.height + 3) / 4;
+    if (imageData.height == 1) {
+    } else if (imageData.height == 2) {
+        auto blocks = (BC1Block*)imageData.mem;
         for (uint32_t x = 0; x < numXBlocks; x++) {
             auto block = blocks + x;
             std::swap(block->m_row0, block->m_row1);
@@ -1146,11 +1131,11 @@ void DDSFile::FlipCompressedImageBC1(ImageData& imageData) {
         }
     } else {
         for (uint32_t y = 0; y < (numYBlocks + 1) / 2; y++) {
-            auto blocks0 = (BC1Block*)((uint8_t*)imageData.m_mem +
-                                       imageData.m_memPitch * y);
+            auto blocks0 =
+                (BC1Block*)((uint8_t*)imageData.mem + imageData.memPitch * y);
             auto blocks1 =
-                (BC1Block*)((uint8_t*)imageData.m_mem +
-                            imageData.m_memPitch * (numYBlocks - y - 1));
+                (BC1Block*)((uint8_t*)imageData.mem +
+                            imageData.memPitch * (numYBlocks - y - 1));
             for (uint32_t x = 0; x < numXBlocks; x++) {
                 auto block0 = blocks0 + x;
                 auto block1 = blocks1 + x;
@@ -1171,11 +1156,11 @@ void DDSFile::FlipCompressedImageBC1(ImageData& imageData) {
 }
 
 void DDSFile::FlipCompressedImageBC2(ImageData& imageData) {
-    uint32_t numXBlocks = (imageData.m_width + 3) / 4;
-    uint32_t numYBlocks = (imageData.m_height + 3) / 4;
-    if (imageData.m_height == 1) {
-    } else if (imageData.m_height == 2) {
-        auto blocks = (BC2Block*)imageData.m_mem;
+    uint32_t numXBlocks = (imageData.width + 3) / 4;
+    uint32_t numYBlocks = (imageData.height + 3) / 4;
+    if (imageData.height == 1) {
+    } else if (imageData.height == 2) {
+        auto blocks = (BC2Block*)imageData.mem;
         for (uint32_t x = 0; x < numXBlocks; x++) {
             auto block = blocks + x;
             std::swap(block->m_alphaRow0, block->m_alphaRow1);
@@ -1185,11 +1170,11 @@ void DDSFile::FlipCompressedImageBC2(ImageData& imageData) {
         }
     } else {
         for (uint32_t y = 0; y < (numYBlocks + 1) / 2; y++) {
-            auto blocks0 = (BC2Block*)((uint8_t*)imageData.m_mem +
-                                       imageData.m_memPitch * y);
+            auto blocks0 =
+                (BC2Block*)((uint8_t*)imageData.mem + imageData.memPitch * y);
             auto blocks1 =
-                (BC2Block*)((uint8_t*)imageData.m_mem +
-                            imageData.m_memPitch * (numYBlocks - y - 1));
+                (BC2Block*)((uint8_t*)imageData.mem +
+                            imageData.memPitch * (numYBlocks - y - 1));
             for (uint32_t x = 0; x < numXBlocks; x++) {
                 auto block0 = blocks0 + x;
                 auto block1 = blocks1 + x;
@@ -1216,11 +1201,11 @@ void DDSFile::FlipCompressedImageBC2(ImageData& imageData) {
 }
 
 void DDSFile::FlipCompressedImageBC3(ImageData& imageData) {
-    uint32_t numXBlocks = (imageData.m_width + 3) / 4;
-    uint32_t numYBlocks = (imageData.m_height + 3) / 4;
-    if (imageData.m_height == 1) {
-    } else if (imageData.m_height == 2) {
-        auto blocks = (BC3Block*)imageData.m_mem;
+    uint32_t numXBlocks = (imageData.width + 3) / 4;
+    uint32_t numYBlocks = (imageData.height + 3) / 4;
+    if (imageData.height == 1) {
+    } else if (imageData.height == 2) {
+        auto blocks = (BC3Block*)imageData.mem;
         for (uint32_t x = 0; x < numXBlocks; x++) {
             auto block = blocks + x;
             uint8_t r0 = (block->m_alphaR1 >> 4) | (block->m_alphaR2 << 4);
@@ -1241,11 +1226,11 @@ void DDSFile::FlipCompressedImageBC3(ImageData& imageData) {
         }
     } else {
         for (uint32_t y = 0; y < (numYBlocks + 1) / 2; y++) {
-            auto blocks0 = (BC3Block*)((uint8_t*)imageData.m_mem +
-                                       imageData.m_memPitch * y);
+            auto blocks0 =
+                (BC3Block*)((uint8_t*)imageData.mem + imageData.memPitch * y);
             auto blocks1 =
-                (BC3Block*)((uint8_t*)imageData.m_mem +
-                            imageData.m_memPitch * (numYBlocks - y - 1));
+                (BC3Block*)((uint8_t*)imageData.mem +
+                            imageData.memPitch * (numYBlocks - y - 1));
             for (uint32_t x = 0; x < numXBlocks; x++) {
                 auto block0 = blocks0 + x;
                 auto block1 = blocks1 + x;
@@ -1313,11 +1298,11 @@ void DDSFile::FlipCompressedImageBC3(ImageData& imageData) {
 }
 
 void DDSFile::FlipCompressedImageBC4(ImageData& imageData) {
-    uint32_t numXBlocks = (imageData.m_width + 3) / 4;
-    uint32_t numYBlocks = (imageData.m_height + 3) / 4;
-    if (imageData.m_height == 1) {
-    } else if (imageData.m_height == 2) {
-        auto blocks = (BC4Block*)imageData.m_mem;
+    uint32_t numXBlocks = (imageData.width + 3) / 4;
+    uint32_t numYBlocks = (imageData.height + 3) / 4;
+    if (imageData.height == 1) {
+    } else if (imageData.height == 2) {
+        auto blocks = (BC4Block*)imageData.mem;
         for (uint32_t x = 0; x < numXBlocks; x++) {
             auto block = blocks + x;
             uint8_t r0 = (block->m_redR1 >> 4) | (block->m_redR2 << 4);
@@ -1336,11 +1321,11 @@ void DDSFile::FlipCompressedImageBC4(ImageData& imageData) {
         }
     } else {
         for (uint32_t y = 0; y < (numYBlocks + 1) / 2; y++) {
-            auto blocks0 = (BC4Block*)((uint8_t*)imageData.m_mem +
-                                       imageData.m_memPitch * y);
+            auto blocks0 =
+                (BC4Block*)((uint8_t*)imageData.mem + imageData.memPitch * y);
             auto blocks1 =
-                (BC4Block*)((uint8_t*)imageData.m_mem +
-                            imageData.m_memPitch * (numYBlocks - y - 1));
+                (BC4Block*)((uint8_t*)imageData.mem +
+                            imageData.memPitch * (numYBlocks - y - 1));
             for (uint32_t x = 0; x < numXBlocks; x++) {
                 auto block0 = blocks0 + x;
                 auto block1 = blocks1 + x;
@@ -1399,11 +1384,11 @@ void DDSFile::FlipCompressedImageBC4(ImageData& imageData) {
 }
 
 void DDSFile::FlipCompressedImageBC5(ImageData& imageData) {
-    uint32_t numXBlocks = (imageData.m_width + 3) / 4;
-    uint32_t numYBlocks = (imageData.m_height + 3) / 4;
-    if (imageData.m_height == 1) {
-    } else if (imageData.m_height == 2) {
-        auto blocks = (BC5Block*)imageData.m_mem;
+    uint32_t numXBlocks = (imageData.width + 3) / 4;
+    uint32_t numYBlocks = (imageData.height + 3) / 4;
+    if (imageData.height == 1) {
+    } else if (imageData.height == 2) {
+        auto blocks = (BC5Block*)imageData.mem;
         for (uint32_t x = 0; x < numXBlocks; x++) {
             auto block = blocks + x;
             uint8_t r0 = (block->m_redR1 >> 4) | (block->m_redR2 << 4);
@@ -1436,11 +1421,11 @@ void DDSFile::FlipCompressedImageBC5(ImageData& imageData) {
         }
     } else {
         for (uint32_t y = 0; y < (numYBlocks + 1) / 2; y++) {
-            auto blocks0 = (BC5Block*)((uint8_t*)imageData.m_mem +
-                                       imageData.m_memPitch * y);
+            auto blocks0 =
+                (BC5Block*)((uint8_t*)imageData.mem + imageData.memPitch * y);
             auto blocks1 =
-                (BC5Block*)((uint8_t*)imageData.m_mem +
-                            imageData.m_memPitch * (numYBlocks - y - 1));
+                (BC5Block*)((uint8_t*)imageData.mem +
+                            imageData.memPitch * (numYBlocks - y - 1));
             for (uint32_t x = 0; x < numXBlocks; x++) {
                 auto block0 = blocks0 + x;
                 auto block1 = blocks1 + x;

@@ -30,9 +30,8 @@ int main(int argc, char** argv) {
             const auto* imageData = dds.GetImageData(mipIdx, arrayIdx);
             std::cout << "Array[" << arrayIdx << "] "
                       << "Mip[" << mipIdx << "]: "
-                      << "(" << imageData->m_width << ", "
-                      << imageData->m_height << ", " << imageData->m_depth
-                      << ")\n";
+                      << "(" << imageData->width << ", " << imageData->height
+                      << ", " << imageData->depth << ")\n";
         }
     }
     std::cout << "Cubemap: " << dds.IsCubemap() << "\n";
