@@ -229,11 +229,11 @@ public:
     };
 
     struct PixelFormat {
-        uint32_t size;
-        uint32_t flags;
-        uint32_t fourCC;
-        uint32_t bitCount;
-        uint32_t masks[4];
+        uint32_t size;      ///< structure size, must be 32
+        uint32_t flags;     ///< flags to indicate valid fields
+        uint32_t fourCC;    ///< compression four-character code
+        uint32_t bitCount;  ///< bits per pixel
+        uint32_t masks[4];  ///< bitmasks for the r,g,b,a channels
     };
 
     struct Header {
@@ -810,10 +810,7 @@ Result DDSFile::Load(std::vector<uint8_t>&& dds) {
 
     m_dds = std::move(dds);
 
-    auto status = VerifyHeader();
-    if (status != Result::Success) return status;
-
-    return Result::Success;
+    return VerifyHeader();
 }
 
 Result DDSFile::VerifyHeader() {
@@ -826,7 +823,7 @@ Result DDSFile::VerifyHeader() {
 
     m_hasDXT10Header = false;
     if ((m_header.pixelFormat.flags & uint32_t(PixelFormatFlagBits::FourCC)) &&
-        (MakeFourCC('D', 'X', '1', '0') == m_header.pixelFormat.fourCC)) {
+        (DX10_4CC == m_header.pixelFormat.fourCC)) {
         if ((sizeof(uint32_t) + sizeof(Header) + sizeof(HeaderDXT10)) >=
             m_dds.size()) {
             return Result::ErrorSize;
