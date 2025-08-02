@@ -280,75 +280,6 @@ public:
         uint32_t memSlicePitch;
     };
 
-    struct BC1Block {
-        uint16_t m_color0;
-        uint16_t m_color1;
-        uint8_t m_row0;
-        uint8_t m_row1;
-        uint8_t m_row2;
-        uint8_t m_row3;
-    };
-
-    struct BC2Block {
-        uint16_t m_alphaRow0;
-        uint16_t m_alphaRow1;
-        uint16_t m_alphaRow2;
-        uint16_t m_alphaRow3;
-        uint16_t m_color0;
-        uint16_t m_color1;
-        uint8_t m_row0;
-        uint8_t m_row1;
-        uint8_t m_row2;
-        uint8_t m_row3;
-    };
-
-    struct BC3Block {
-        uint8_t m_alpha0;
-        uint8_t m_alpha1;
-        uint8_t m_alphaR0;
-        uint8_t m_alphaR1;
-        uint8_t m_alphaR2;
-        uint8_t m_alphaR3;
-        uint8_t m_alphaR4;
-        uint8_t m_alphaR5;
-        uint16_t m_color0;
-        uint16_t m_color1;
-        uint8_t m_row0;
-        uint8_t m_row1;
-        uint8_t m_row2;
-        uint8_t m_row3;
-    };
-
-    struct BC4Block {
-        uint8_t m_red0;
-        uint8_t m_red1;
-        uint8_t m_redR0;
-        uint8_t m_redR1;
-        uint8_t m_redR2;
-        uint8_t m_redR3;
-        uint8_t m_redR4;
-        uint8_t m_redR5;
-    };
-
-    struct BC5Block {
-        uint8_t m_red0;
-        uint8_t m_red1;
-        uint8_t m_redR0;
-        uint8_t m_redR1;
-        uint8_t m_redR2;
-        uint8_t m_redR3;
-        uint8_t m_redR4;
-        uint8_t m_redR5;
-        uint8_t m_green0;
-        uint8_t m_green1;
-        uint8_t m_greenR0;
-        uint8_t m_greenR1;
-        uint8_t m_greenR2;
-        uint8_t m_greenR3;
-        uint8_t m_greenR4;
-        uint8_t m_greenR5;
-    };
-
 public:
     static bool IsCompressed(DXGIFormat fmt);
     static DXGIFormat GetDXGIFormat(const PixelFormat& pf);
@@ -368,8 +299,6 @@ public:
         }
         return nullptr;
     }
-
-    bool Flip();
 
     const Header& GetHeader() const { return m_header; }
     const HeaderDXT10& GetHeaderDXT10() const { return m_headerDXT10; }
@@ -392,13 +321,6 @@ private:
     void GetImageInfo(uint32_t w, uint32_t h, DXGIFormat fmt,
                       uint32_t* outNumBytes, uint32_t* outRowBytes,
                       uint32_t* outNumRows);
-    bool FlipImage(ImageData& imageData);
-    bool FlipCompressedImage(ImageData& imageData);
-    void FlipCompressedImageBC1(ImageData& imageData);
-    void FlipCompressedImageBC2(ImageData& imageData);
-    void FlipCompressedImageBC3(ImageData& imageData);
-    void FlipCompressedImageBC4(ImageData& imageData);
-    void FlipCompressedImageBC5(ImageData& imageData);
 
 private:
     std::vector<uint8_t> m_dds;
@@ -930,46 +852,48 @@ Result DDSFile::VerifyHeader() {
                 m_compression = Compression::DXT5;
                 m_header.pixelFormat.flags &= ~PixelFormatFlagBits::Normal;
                 break;
-            case DDSFile::ATI1_4CC:
+            case ATI1_4CC:
                 m_compression = Compression::BC4;
                 break;
-            case DDSFile::ATI2_4CC:
+            case ATI2_4CC:
                 m_compression = Compression::BC5;
                 break;
-            case DDSFile::BC4U_4CC:
+            case BC4U_4CC:
                 m_compression = Compression::BC4;
                 break;
-            case DDSFile::BC5U_4CC:
+            case BC5U_4CC:
                 m_compression = Compression::BC5;
                 break;
-            case DDSFile::DX10_4CC: {
+            case DX10_4CC: {
                 switch (m_headerDXT10.format) {
-                    case DDSFile::BC1_UNorm:
-                    case DDSFile::BC1_UNorm_SRGB:
+                    case BC1_UNorm:
+                    case BC1_UNorm_SRGB:
                         m_compression = Compression::DXT1;
                         break;
-                    case DDSFile::BC2_UNorm:
-                    case DDSFile::BC2_UNorm_SRGB:
+                    case BC2_UNorm:
+                    case BC2_UNorm_SRGB:
                         m_compression = Compression::DXT3;
                         break;
-                    case DDSFile::BC3_UNorm:
-                    case DDSFile::BC3_UNorm_SRGB:
+                    case BC3_UNorm:
+                    case BC3_UNorm_SRGB:
                         m_compression = Compression::DXT5;
                         break;
-                    case DDSFile::BC4_UNorm:
+                    case BC4_UNorm:
+                    case BC4_SNorm:
                         m_compression = Compression::BC4;
                         break;
-                    case DDSFile::BC5_UNorm:
+                    case BC5_UNorm:
+                    case BC5_SNorm:
                         m_compression = Compression::BC5;
                         break;
-                    case DDSFile::BC6H_UF16:
+                    case BC6H_UF16:
                         m_compression = Compression::BC6HU;
                         break;
-                    case DDSFile::BC6H_SF16:
+                    case BC6H_SF16:
                         m_compression = Compression::BC6HS;
                         break;
-                    case DDSFile::BC7_UNorm:
-                    case DDSFile::BC7_UNorm_SRGB:
+                    case BC7_UNorm:
+                    case BC7_UNorm_SRGB:
                         m_compression = Compression::BC7;
                         break;
                     default: {
@@ -1170,478 +1094,6 @@ void DDSFile::GetImageInfo(uint32_t w, uint32_t h, DXGIFormat fmt,
     }
     if (outNumRows) {
         *outNumRows = numRows;
-    }
-}
-
-bool DDSFile::Flip() {
-    if (IsCompressed(m_headerDXT10.format)) {
-        for (auto& imageData : m_imageDatas) {
-            if (!FlipCompressedImage(imageData)) {
-                return false;
-            }
-        }
-    } else {
-        for (auto& imageData : m_imageDatas) {
-            if (!FlipImage(imageData)) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-bool DDSFile::FlipImage(ImageData& imageData) {
-    for (uint32_t y = 0; y < imageData.height / 2; y++) {
-        auto line0 = (uint8_t*)imageData.mem + y * imageData.memPitch;
-        auto line1 = (uint8_t*)imageData.mem +
-                     (imageData.height - y - 1) * imageData.memPitch;
-        for (uint32_t i = 0; i < imageData.memPitch; i++) {
-            std::swap(*line0, *line1);
-            line0++;
-            line1++;
-        }
-    }
-    return true;
-}
-
-bool DDSFile::FlipCompressedImage(ImageData& imageData) {
-    if (BC1_Typeless == m_headerDXT10.format ||
-        BC1_UNorm == m_headerDXT10.format ||
-        BC1_UNorm_SRGB == m_headerDXT10.format) {
-        FlipCompressedImageBC1(imageData);
-        return true;
-    } else if (BC2_Typeless == m_headerDXT10.format ||
-               BC2_UNorm == m_headerDXT10.format ||
-               BC2_UNorm_SRGB == m_headerDXT10.format) {
-        FlipCompressedImageBC2(imageData);
-        return true;
-    } else if (BC3_Typeless == m_headerDXT10.format ||
-               BC3_UNorm == m_headerDXT10.format ||
-               BC3_UNorm_SRGB == m_headerDXT10.format) {
-        FlipCompressedImageBC3(imageData);
-        return true;
-    } else if (BC4_Typeless == m_headerDXT10.format ||
-               BC4_UNorm == m_headerDXT10.format ||
-               BC4_SNorm == m_headerDXT10.format) {
-        FlipCompressedImageBC4(imageData);
-        return true;
-    } else if (BC5_Typeless == m_headerDXT10.format ||
-               BC5_UNorm == m_headerDXT10.format ||
-               BC5_SNorm == m_headerDXT10.format) {
-        FlipCompressedImageBC5(imageData);
-        return true;
-    }
-    return false;
-}
-
-void DDSFile::FlipCompressedImageBC1(ImageData& imageData) {
-    uint32_t numXBlocks = (imageData.width + 3) / 4;
-    uint32_t numYBlocks = (imageData.height + 3) / 4;
-    if (imageData.height == 1) {
-    } else if (imageData.height == 2) {
-        auto blocks = (BC1Block*)imageData.mem;
-        for (uint32_t x = 0; x < numXBlocks; x++) {
-            auto block = blocks + x;
-            std::swap(block->m_row0, block->m_row1);
-            std::swap(block->m_row2, block->m_row3);
-        }
-    } else {
-        for (uint32_t y = 0; y < (numYBlocks + 1) / 2; y++) {
-            auto blocks0 =
-                (BC1Block*)((uint8_t*)imageData.mem + imageData.memPitch * y);
-            auto blocks1 =
-                (BC1Block*)((uint8_t*)imageData.mem +
-                            imageData.memPitch * (numYBlocks - y - 1));
-            for (uint32_t x = 0; x < numXBlocks; x++) {
-                auto block0 = blocks0 + x;
-                auto block1 = blocks1 + x;
-                if (blocks0 != blocks1) {
-                    std::swap(block0->m_color0, block1->m_color0);
-                    std::swap(block0->m_color1, block1->m_color1);
-                    std::swap(block0->m_row0, block1->m_row3);
-                    std::swap(block0->m_row1, block1->m_row2);
-                    std::swap(block0->m_row2, block1->m_row1);
-                    std::swap(block0->m_row3, block1->m_row0);
-                } else {
-                    std::swap(block0->m_row0, block0->m_row3);
-                    std::swap(block0->m_row1, block0->m_row2);
-                }
-            }
-        }
-    }
-}
-
-void DDSFile::FlipCompressedImageBC2(ImageData& imageData) {
-    uint32_t numXBlocks = (imageData.width + 3) / 4;
-    uint32_t numYBlocks = (imageData.height + 3) / 4;
-    if (imageData.height == 1) {
-    } else if (imageData.height == 2) {
-        auto blocks = (BC2Block*)imageData.mem;
-        for (uint32_t x = 0; x < numXBlocks; x++) {
-            auto block = blocks + x;
-            std::swap(block->m_alphaRow0, block->m_alphaRow1);
-            std::swap(block->m_alphaRow2, block->m_alphaRow3);
-            std::swap(block->m_row0, block->m_row1);
-            std::swap(block->m_row2, block->m_row3);
-        }
-    } else {
-        for (uint32_t y = 0; y < (numYBlocks + 1) / 2; y++) {
-            auto blocks0 =
-                (BC2Block*)((uint8_t*)imageData.mem + imageData.memPitch * y);
-            auto blocks1 =
-                (BC2Block*)((uint8_t*)imageData.mem +
-                            imageData.memPitch * (numYBlocks - y - 1));
-            for (uint32_t x = 0; x < numXBlocks; x++) {
-                auto block0 = blocks0 + x;
-                auto block1 = blocks1 + x;
-                if (block0 != block1) {
-                    std::swap(block0->m_alphaRow0, block1->m_alphaRow3);
-                    std::swap(block0->m_alphaRow1, block1->m_alphaRow2);
-                    std::swap(block0->m_alphaRow2, block1->m_alphaRow1);
-                    std::swap(block0->m_alphaRow3, block1->m_alphaRow0);
-                    std::swap(block0->m_color0, block1->m_color0);
-                    std::swap(block0->m_color1, block1->m_color1);
-                    std::swap(block0->m_row0, block1->m_row3);
-                    std::swap(block0->m_row1, block1->m_row2);
-                    std::swap(block0->m_row2, block1->m_row1);
-                    std::swap(block0->m_row3, block1->m_row0);
-                } else {
-                    std::swap(block0->m_alphaRow0, block0->m_alphaRow3);
-                    std::swap(block0->m_alphaRow1, block0->m_alphaRow2);
-                    std::swap(block0->m_row0, block0->m_row3);
-                    std::swap(block0->m_row1, block0->m_row2);
-                }
-            }
-        }
-    }
-}
-
-void DDSFile::FlipCompressedImageBC3(ImageData& imageData) {
-    uint32_t numXBlocks = (imageData.width + 3) / 4;
-    uint32_t numYBlocks = (imageData.height + 3) / 4;
-    if (imageData.height == 1) {
-    } else if (imageData.height == 2) {
-        auto blocks = (BC3Block*)imageData.mem;
-        for (uint32_t x = 0; x < numXBlocks; x++) {
-            auto block = blocks + x;
-            uint8_t r0 = (block->m_alphaR1 >> 4) | (block->m_alphaR2 << 4);
-            uint8_t r1 = (block->m_alphaR2 >> 4) | (block->m_alphaR0 << 4);
-            uint8_t r2 = (block->m_alphaR0 >> 4) | (block->m_alphaR1 << 4);
-            uint8_t r3 = (block->m_alphaR4 >> 4) | (block->m_alphaR5 << 4);
-            uint8_t r4 = (block->m_alphaR5 >> 4) | (block->m_alphaR3 << 4);
-            uint8_t r5 = (block->m_alphaR3 >> 4) | (block->m_alphaR4 << 4);
-
-            block->m_alphaR0 = r0;
-            block->m_alphaR1 = r1;
-            block->m_alphaR2 = r2;
-            block->m_alphaR3 = r3;
-            block->m_alphaR4 = r4;
-            block->m_alphaR5 = r5;
-            std::swap(block->m_row0, block->m_row1);
-            std::swap(block->m_row2, block->m_row3);
-        }
-    } else {
-        for (uint32_t y = 0; y < (numYBlocks + 1) / 2; y++) {
-            auto blocks0 =
-                (BC3Block*)((uint8_t*)imageData.mem + imageData.memPitch * y);
-            auto blocks1 =
-                (BC3Block*)((uint8_t*)imageData.mem +
-                            imageData.memPitch * (numYBlocks - y - 1));
-            for (uint32_t x = 0; x < numXBlocks; x++) {
-                auto block0 = blocks0 + x;
-                auto block1 = blocks1 + x;
-                if (block0 != block1) {
-                    std::swap(block0->m_alpha0, block1->m_alpha0);
-                    std::swap(block0->m_alpha1, block1->m_alpha1);
-
-                    uint8_t r0[6];
-                    r0[0] = (block0->m_alphaR4 >> 4) | (block0->m_alphaR5 << 4);
-                    r0[1] = (block0->m_alphaR5 >> 4) | (block0->m_alphaR3 << 4);
-                    r0[2] = (block0->m_alphaR3 >> 4) | (block0->m_alphaR4 << 4);
-                    r0[3] = (block0->m_alphaR1 >> 4) | (block0->m_alphaR2 << 4);
-                    r0[4] = (block0->m_alphaR2 >> 4) | (block0->m_alphaR0 << 4);
-                    r0[5] = (block0->m_alphaR0 >> 4) | (block0->m_alphaR1 << 4);
-                    uint8_t r1[6];
-                    r1[0] = (block1->m_alphaR4 >> 4) | (block1->m_alphaR5 << 4);
-                    r1[1] = (block1->m_alphaR5 >> 4) | (block1->m_alphaR3 << 4);
-                    r1[2] = (block1->m_alphaR3 >> 4) | (block1->m_alphaR4 << 4);
-                    r1[3] = (block1->m_alphaR1 >> 4) | (block1->m_alphaR2 << 4);
-                    r1[4] = (block1->m_alphaR2 >> 4) | (block1->m_alphaR0 << 4);
-                    r1[5] = (block1->m_alphaR0 >> 4) | (block1->m_alphaR1 << 4);
-
-                    block0->m_alphaR0 = r1[0];
-                    block0->m_alphaR1 = r1[1];
-                    block0->m_alphaR2 = r1[2];
-                    block0->m_alphaR3 = r1[3];
-                    block0->m_alphaR4 = r1[4];
-                    block0->m_alphaR5 = r1[5];
-
-                    block1->m_alphaR0 = r0[0];
-                    block1->m_alphaR1 = r0[1];
-                    block1->m_alphaR2 = r0[2];
-                    block1->m_alphaR3 = r0[3];
-                    block1->m_alphaR4 = r0[4];
-                    block1->m_alphaR5 = r0[5];
-
-                    std::swap(block0->m_color0, block1->m_color0);
-                    std::swap(block0->m_color1, block1->m_color1);
-                    std::swap(block0->m_row0, block1->m_row3);
-                    std::swap(block0->m_row1, block1->m_row2);
-                    std::swap(block0->m_row2, block1->m_row1);
-                    std::swap(block0->m_row3, block1->m_row0);
-                } else {
-                    uint8_t r0[6];
-                    r0[0] = (block0->m_alphaR4 >> 4) | (block0->m_alphaR5 << 4);
-                    r0[1] = (block0->m_alphaR5 >> 4) | (block0->m_alphaR3 << 4);
-                    r0[2] = (block0->m_alphaR3 >> 4) | (block0->m_alphaR4 << 4);
-                    r0[3] = (block0->m_alphaR1 >> 4) | (block0->m_alphaR2 << 4);
-                    r0[4] = (block0->m_alphaR2 >> 4) | (block0->m_alphaR0 << 4);
-                    r0[5] = (block0->m_alphaR0 >> 4) | (block0->m_alphaR1 << 4);
-
-                    block0->m_alphaR0 = r0[0];
-                    block0->m_alphaR1 = r0[1];
-                    block0->m_alphaR2 = r0[2];
-                    block0->m_alphaR3 = r0[3];
-                    block0->m_alphaR4 = r0[4];
-                    block0->m_alphaR5 = r0[5];
-
-                    std::swap(block0->m_row0, block0->m_row3);
-                    std::swap(block0->m_row1, block0->m_row2);
-                }
-            }
-        }
-    }
-}
-
-void DDSFile::FlipCompressedImageBC4(ImageData& imageData) {
-    uint32_t numXBlocks = (imageData.width + 3) / 4;
-    uint32_t numYBlocks = (imageData.height + 3) / 4;
-    if (imageData.height == 1) {
-    } else if (imageData.height == 2) {
-        auto blocks = (BC4Block*)imageData.mem;
-        for (uint32_t x = 0; x < numXBlocks; x++) {
-            auto block = blocks + x;
-            uint8_t r0 = (block->m_redR1 >> 4) | (block->m_redR2 << 4);
-            uint8_t r1 = (block->m_redR2 >> 4) | (block->m_redR0 << 4);
-            uint8_t r2 = (block->m_redR0 >> 4) | (block->m_redR1 << 4);
-            uint8_t r3 = (block->m_redR4 >> 4) | (block->m_redR5 << 4);
-            uint8_t r4 = (block->m_redR5 >> 4) | (block->m_redR3 << 4);
-            uint8_t r5 = (block->m_redR3 >> 4) | (block->m_redR4 << 4);
-
-            block->m_redR0 = r0;
-            block->m_redR1 = r1;
-            block->m_redR2 = r2;
-            block->m_redR3 = r3;
-            block->m_redR4 = r4;
-            block->m_redR5 = r5;
-        }
-    } else {
-        for (uint32_t y = 0; y < (numYBlocks + 1) / 2; y++) {
-            auto blocks0 =
-                (BC4Block*)((uint8_t*)imageData.mem + imageData.memPitch * y);
-            auto blocks1 =
-                (BC4Block*)((uint8_t*)imageData.mem +
-                            imageData.memPitch * (numYBlocks - y - 1));
-            for (uint32_t x = 0; x < numXBlocks; x++) {
-                auto block0 = blocks0 + x;
-                auto block1 = blocks1 + x;
-                if (block0 != block1) {
-                    std::swap(block0->m_red0, block1->m_red0);
-                    std::swap(block0->m_red1, block1->m_red1);
-
-                    uint8_t r0[6];
-                    r0[0] = (block0->m_redR4 >> 4) | (block0->m_redR5 << 4);
-                    r0[1] = (block0->m_redR5 >> 4) | (block0->m_redR3 << 4);
-                    r0[2] = (block0->m_redR3 >> 4) | (block0->m_redR4 << 4);
-                    r0[3] = (block0->m_redR1 >> 4) | (block0->m_redR2 << 4);
-                    r0[4] = (block0->m_redR2 >> 4) | (block0->m_redR0 << 4);
-                    r0[5] = (block0->m_redR0 >> 4) | (block0->m_redR1 << 4);
-                    uint8_t r1[6];
-                    r1[0] = (block1->m_redR4 >> 4) | (block1->m_redR5 << 4);
-                    r1[1] = (block1->m_redR5 >> 4) | (block1->m_redR3 << 4);
-                    r1[2] = (block1->m_redR3 >> 4) | (block1->m_redR4 << 4);
-                    r1[3] = (block1->m_redR1 >> 4) | (block1->m_redR2 << 4);
-                    r1[4] = (block1->m_redR2 >> 4) | (block1->m_redR0 << 4);
-                    r1[5] = (block1->m_redR0 >> 4) | (block1->m_redR1 << 4);
-
-                    block0->m_redR0 = r1[0];
-                    block0->m_redR1 = r1[1];
-                    block0->m_redR2 = r1[2];
-                    block0->m_redR3 = r1[3];
-                    block0->m_redR4 = r1[4];
-                    block0->m_redR5 = r1[5];
-
-                    block1->m_redR0 = r0[0];
-                    block1->m_redR1 = r0[1];
-                    block1->m_redR2 = r0[2];
-                    block1->m_redR3 = r0[3];
-                    block1->m_redR4 = r0[4];
-                    block1->m_redR5 = r0[5];
-
-                } else {
-                    uint8_t r0[6];
-                    r0[0] = (block0->m_redR4 >> 4) | (block0->m_redR5 << 4);
-                    r0[1] = (block0->m_redR5 >> 4) | (block0->m_redR3 << 4);
-                    r0[2] = (block0->m_redR3 >> 4) | (block0->m_redR4 << 4);
-                    r0[3] = (block0->m_redR1 >> 4) | (block0->m_redR2 << 4);
-                    r0[4] = (block0->m_redR2 >> 4) | (block0->m_redR0 << 4);
-                    r0[5] = (block0->m_redR0 >> 4) | (block0->m_redR1 << 4);
-
-                    block0->m_redR0 = r0[0];
-                    block0->m_redR1 = r0[1];
-                    block0->m_redR2 = r0[2];
-                    block0->m_redR3 = r0[3];
-                    block0->m_redR4 = r0[4];
-                    block0->m_redR5 = r0[5];
-                }
-            }
-        }
-    }
-}
-
-void DDSFile::FlipCompressedImageBC5(ImageData& imageData) {
-    uint32_t numXBlocks = (imageData.width + 3) / 4;
-    uint32_t numYBlocks = (imageData.height + 3) / 4;
-    if (imageData.height == 1) {
-    } else if (imageData.height == 2) {
-        auto blocks = (BC5Block*)imageData.mem;
-        for (uint32_t x = 0; x < numXBlocks; x++) {
-            auto block = blocks + x;
-            uint8_t r0 = (block->m_redR1 >> 4) | (block->m_redR2 << 4);
-            uint8_t r1 = (block->m_redR2 >> 4) | (block->m_redR0 << 4);
-            uint8_t r2 = (block->m_redR0 >> 4) | (block->m_redR1 << 4);
-            uint8_t r3 = (block->m_redR4 >> 4) | (block->m_redR5 << 4);
-            uint8_t r4 = (block->m_redR5 >> 4) | (block->m_redR3 << 4);
-            uint8_t r5 = (block->m_redR3 >> 4) | (block->m_redR4 << 4);
-
-            block->m_redR0 = r0;
-            block->m_redR1 = r1;
-            block->m_redR2 = r2;
-            block->m_redR3 = r3;
-            block->m_redR4 = r4;
-            block->m_redR5 = r5;
-
-            uint8_t g0 = (block->m_greenR1 >> 4) | (block->m_greenR2 << 4);
-            uint8_t g1 = (block->m_greenR2 >> 4) | (block->m_greenR0 << 4);
-            uint8_t g2 = (block->m_greenR0 >> 4) | (block->m_greenR1 << 4);
-            uint8_t g3 = (block->m_greenR4 >> 4) | (block->m_greenR5 << 4);
-            uint8_t g4 = (block->m_greenR5 >> 4) | (block->m_greenR3 << 4);
-            uint8_t g5 = (block->m_greenR3 >> 4) | (block->m_greenR4 << 4);
-
-            block->m_greenR0 = g0;
-            block->m_greenR1 = g1;
-            block->m_greenR2 = g2;
-            block->m_greenR3 = g3;
-            block->m_greenR4 = g4;
-            block->m_greenR5 = g5;
-        }
-    } else {
-        for (uint32_t y = 0; y < (numYBlocks + 1) / 2; y++) {
-            auto blocks0 =
-                (BC5Block*)((uint8_t*)imageData.mem + imageData.memPitch * y);
-            auto blocks1 =
-                (BC5Block*)((uint8_t*)imageData.mem +
-                            imageData.memPitch * (numYBlocks - y - 1));
-            for (uint32_t x = 0; x < numXBlocks; x++) {
-                auto block0 = blocks0 + x;
-                auto block1 = blocks1 + x;
-                if (block0 != block1) {
-                    std::swap(block0->m_red0, block1->m_red0);
-                    std::swap(block0->m_red1, block1->m_red1);
-
-                    uint8_t r0[6];
-                    r0[0] = (block0->m_redR4 >> 4) | (block0->m_redR5 << 4);
-                    r0[1] = (block0->m_redR5 >> 4) | (block0->m_redR3 << 4);
-                    r0[2] = (block0->m_redR3 >> 4) | (block0->m_redR4 << 4);
-                    r0[3] = (block0->m_redR1 >> 4) | (block0->m_redR2 << 4);
-                    r0[4] = (block0->m_redR2 >> 4) | (block0->m_redR0 << 4);
-                    r0[5] = (block0->m_redR0 >> 4) | (block0->m_redR1 << 4);
-                    uint8_t r1[6];
-                    r1[0] = (block1->m_redR4 >> 4) | (block1->m_redR5 << 4);
-                    r1[1] = (block1->m_redR5 >> 4) | (block1->m_redR3 << 4);
-                    r1[2] = (block1->m_redR3 >> 4) | (block1->m_redR4 << 4);
-                    r1[3] = (block1->m_redR1 >> 4) | (block1->m_redR2 << 4);
-                    r1[4] = (block1->m_redR2 >> 4) | (block1->m_redR0 << 4);
-                    r1[5] = (block1->m_redR0 >> 4) | (block1->m_redR1 << 4);
-
-                    block0->m_redR0 = r1[0];
-                    block0->m_redR1 = r1[1];
-                    block0->m_redR2 = r1[2];
-                    block0->m_redR3 = r1[3];
-                    block0->m_redR4 = r1[4];
-                    block0->m_redR5 = r1[5];
-
-                    block1->m_redR0 = r0[0];
-                    block1->m_redR1 = r0[1];
-                    block1->m_redR2 = r0[2];
-                    block1->m_redR3 = r0[3];
-                    block1->m_redR4 = r0[4];
-                    block1->m_redR5 = r0[5];
-
-                    std::swap(block0->m_green0, block1->m_green0);
-                    std::swap(block0->m_green1, block1->m_green1);
-
-                    uint8_t g0[6];
-                    g0[0] = (block0->m_greenR4 >> 4) | (block0->m_greenR5 << 4);
-                    g0[1] = (block0->m_greenR5 >> 4) | (block0->m_greenR3 << 4);
-                    g0[2] = (block0->m_greenR3 >> 4) | (block0->m_greenR4 << 4);
-                    g0[3] = (block0->m_greenR1 >> 4) | (block0->m_greenR2 << 4);
-                    g0[4] = (block0->m_greenR2 >> 4) | (block0->m_greenR0 << 4);
-                    g0[5] = (block0->m_greenR0 >> 4) | (block0->m_greenR1 << 4);
-                    uint8_t g1[6];
-                    g1[0] = (block1->m_greenR4 >> 4) | (block1->m_greenR5 << 4);
-                    g1[1] = (block1->m_greenR5 >> 4) | (block1->m_greenR3 << 4);
-                    g1[2] = (block1->m_greenR3 >> 4) | (block1->m_greenR4 << 4);
-                    g1[3] = (block1->m_greenR1 >> 4) | (block1->m_greenR2 << 4);
-                    g1[4] = (block1->m_greenR2 >> 4) | (block1->m_greenR0 << 4);
-                    g1[5] = (block1->m_greenR0 >> 4) | (block1->m_greenR1 << 4);
-
-                    block0->m_greenR0 = g1[0];
-                    block0->m_greenR1 = g1[1];
-                    block0->m_greenR2 = g1[2];
-                    block0->m_greenR3 = g1[3];
-                    block0->m_greenR4 = g1[4];
-                    block0->m_greenR5 = g1[5];
-
-                    block1->m_greenR0 = g0[0];
-                    block1->m_greenR1 = g0[1];
-                    block1->m_greenR2 = g0[2];
-                    block1->m_greenR3 = g0[3];
-                    block1->m_greenR4 = g0[4];
-                    block1->m_greenR5 = g0[5];
-                } else {
-                    uint8_t r0[6];
-                    r0[0] = (block0->m_redR4 >> 4) | (block0->m_redR5 << 4);
-                    r0[1] = (block0->m_redR5 >> 4) | (block0->m_redR3 << 4);
-                    r0[2] = (block0->m_redR3 >> 4) | (block0->m_redR4 << 4);
-                    r0[3] = (block0->m_redR1 >> 4) | (block0->m_redR2 << 4);
-                    r0[4] = (block0->m_redR2 >> 4) | (block0->m_redR0 << 4);
-                    r0[5] = (block0->m_redR0 >> 4) | (block0->m_redR1 << 4);
-
-                    block0->m_redR0 = r0[0];
-                    block0->m_redR1 = r0[1];
-                    block0->m_redR2 = r0[2];
-                    block0->m_redR3 = r0[3];
-                    block0->m_redR4 = r0[4];
-                    block0->m_redR5 = r0[5];
-
-                    uint8_t g0[6];
-                    g0[0] = (block0->m_greenR4 >> 4) | (block0->m_greenR5 << 4);
-                    g0[1] = (block0->m_greenR5 >> 4) | (block0->m_greenR3 << 4);
-                    g0[2] = (block0->m_greenR3 >> 4) | (block0->m_greenR4 << 4);
-                    g0[3] = (block0->m_greenR1 >> 4) | (block0->m_greenR2 << 4);
-                    g0[4] = (block0->m_greenR2 >> 4) | (block0->m_greenR0 << 4);
-                    g0[5] = (block0->m_greenR0 >> 4) | (block0->m_greenR1 << 4);
-
-                    block0->m_greenR0 = g0[0];
-                    block0->m_greenR1 = g0[1];
-                    block0->m_greenR2 = g0[2];
-                    block0->m_greenR3 = g0[3];
-                    block0->m_greenR4 = g0[4];
-                    block0->m_greenR5 = g0[5];
-                }
-            }
-        }
     }
 }
 
