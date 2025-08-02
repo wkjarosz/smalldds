@@ -1015,10 +1015,9 @@ Result DDSFile::VerifyHeader() {
                 return Result::ErrorInvalidData;
         }
     }
-}
 
-m_headerVerified = true;
-return Result::Success;
+    m_headerVerified = true;
+    return Result::Success;
 }
 
 Result DDSFile::PopulateImageDatas() {
