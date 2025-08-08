@@ -556,10 +556,13 @@ public:
 
     struct ImageData
     {
-        uint32_t                        width  = 0;
-        uint32_t                        height = 0;
-        uint32_t                        depth  = 0;
-        std::basic_string_view<uint8_t> bytes  = {};
+        uint32_t         width  = 0;
+        uint32_t         height = 0;
+        uint32_t         depth  = 0;
+        std::string_view chars  = {};
+
+        ///< Pointer to the pixel data
+        const uint8_t *bytes() const { return reinterpret_cast<const uint8_t *>(chars.data()); }
     };
 
 public:
@@ -2665,7 +2668,7 @@ Result DDSFile::populate_image_data()
                 break;
             }
 
-            image_data.emplace_back(ImageData{w, h, d, {src_bytes, data_size}});
+            image_data.emplace_back(ImageData{w, h, d, {(const char *)src_bytes, data_size}});
             src_bytes += data_size;
 
             w = std::max<uint32_t>(1, w / 2);
