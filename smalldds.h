@@ -645,7 +645,7 @@ inline float decode_float11(uint32_t bits)
     if (exponent == 0)
     {
         // Denormalized number
-        return std::ldexpf(float(mantissa) / 64.0f, -14);
+        return std::ldexp(float(mantissa) / 64.0f, -14);
     }
     else if (exponent == 31)
     {
@@ -656,7 +656,7 @@ inline float decode_float11(uint32_t bits)
     {
         // Normalized number
         float m = 1.0f + float(mantissa) / 64.0f;
-        return std::ldexpf(m, int(exponent) - 15);
+        return std::ldexp(m, int(exponent) - 15);
     }
 }
 
@@ -672,7 +672,7 @@ inline float decode_float10(uint32_t bits)
     if (exponent == 0)
     {
         // Denormalized number
-        return std::ldexpf(float(mantissa) / 32.0f, -14);
+        return std::ldexp(float(mantissa) / 32.0f, -14);
     }
     else if (exponent == 31)
     {
@@ -683,7 +683,7 @@ inline float decode_float10(uint32_t bits)
     {
         // Normalized number
         float m = 1.0f + float(mantissa) / 32.0f;
-        return std::ldexpf(m, int(exponent) - 15);
+        return std::ldexp(m, int(exponent) - 15);
     }
 }
 
