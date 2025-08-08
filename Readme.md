@@ -1,7 +1,1 @@
-# Tiny DDS File Loader
-
-Simpl DDS file loader.
-
-## See also
-
-https://github.com/Microsoft/DirectXTex
+# SmallDDS - A small, cross-platform, single-header DDS loader with minimal dependencies.
