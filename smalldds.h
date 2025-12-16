@@ -741,6 +741,7 @@ const char *alpha_mode_name(uint32_t a);
 #endif // _Win32
 
 #include <fstream>
+#include <cstring>
 
 namespace smalldds
 {
