@@ -726,6 +726,11 @@ inline float decode_float9_exp_5(uint32_t mantissa9, uint32_t shared_exp_bits)
 // see https://learn.microsoft.com/en-us/windows-hardware/drivers/display/xr-bias-to-float-conversion-rules
 inline float xr_bias_to_float(int bits) { return (bits - 384) / 510.f; }
 
+const char *color_transform_name(DDSFile::ColorTransform t);
+const char *format_name(DDSFile::DXGIFormat fmt);
+const char *compression_name(DDSFile::Compression cmp);
+const char *alpha_mode_name(uint32_t a);
+
 } // namespace smalldds
 
 #ifdef SMALLDDS_IMPLEMENTATION
